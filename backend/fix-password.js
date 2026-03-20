@@ -2,13 +2,23 @@ const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+// Usage: node fix-password.js [email] [new-password]
+// Defaults: jason@jbconstruction.com / contractor123
+
+const email = process.argv[2] || "jason@jbconstruction.com";
+const password = process.argv[3] || "contractor123";
+
 async function main() {
-  const hash = await bcrypt.hash("contractor123", 12);
+  const hash = await bcrypt.hash(password, 12);
   const result = await prisma.user.updateMany({
-    where: { email: "jason@jbconstruction.com" },
+    where: { email: email },
     data: { passwordHash: hash }
   });
-  console.log("Updated users:", result.count);
+  if (result.count > 0) {
+    console.log("Password updated for: " + email);
+  } else {
+    console.log("No user found with email: " + email);
+  }
 }
 
 main()

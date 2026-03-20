@@ -24,7 +24,8 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST /api/expenses
 router.post('/', authenticate, async (req, res) => {
   try {
-    const item = await prisma.expense.create({ data: { ...req.body, companyId: req.companyId } });
+    const { id, createdAt, updatedAt, company, customer, project, estimate, ...clean } = req.body;
+    const item = await prisma.expense.create({ data: { ...clean, companyId: req.companyId } });
     res.status(201).json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -34,7 +35,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const item = await prisma.expense.update({
       where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) },
-      data: req.body,
+      data: (() => { const { id, createdAt, updatedAt, companyId, company, customer, project, estimate, ...clean } = req.body; return clean; })(),
     });
     res.json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }

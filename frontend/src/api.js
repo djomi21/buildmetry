@@ -66,12 +66,8 @@ export const api = {
     return data.user;
   },
 
-  signup: async ({ name, email, password, phone, role, companyName }) => {
-    const data = await request('POST', '/auth/signup', { name, email, password, phone, role, companyName });
-    setToken(data.token);
-    saveUser(data.user);
-    return data.user;
-  },
+  // Signup disabled — users are added by admin via Company Setup
+  signup: async () => { throw new Error('Public registration is disabled. Contact your administrator.'); },
 
   getMe: async () => {
     const user = await request('GET', '/auth/me');

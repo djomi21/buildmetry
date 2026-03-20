@@ -517,17 +517,12 @@ div:has(>table){overflow-x:auto;-webkit-overflow-scrolling:touch}
 `;
 
 // ══════════════════════════════════════════════════════════════
-// LOGIN / SIGN UP
+// LOGIN (sign up removed — only admins can add users via Company Setup)
 // ══════════════════════════════════════════════════════════════
 function LoginPage({users, setUsers, onLogin}) {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [name, setName] = useState("");
-  const [company, setCompanyName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("Owner");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -545,28 +540,12 @@ function LoginPage({users, setUsers, onLogin}) {
     }
   };
 
-  const handleSignup = async () => {
-    setError("");
-    if (!name.trim()) { setError("Full name is required"); return; }
-    if (!email.trim()) { setError("Email is required"); return; }
-    if (!pass.trim() || pass.length < 6) { setError("Password must be at least 6 characters"); return; }
-    setLoading(true);
-    try {
-      const user = await api.signup({ name: name.trim(), email: email.trim(), password: pass, phone: phone.trim(), role, companyName: company || undefined });
-      onLogin(user);
-    } catch (err) {
-      setError(err.message || "Signup failed");
-      setLoading(false);
-    }
-  };
-
   const demoLogin = async (u) => {
     setLoading(true);
     try {
       const user = await api.login(u.email, "contractor123");
       onLogin(user);
     } catch (err) {
-      // Fallback to local demo if API not available
       onLogin({...u, lastLogin: tod()});
     }
   };
@@ -581,9 +560,7 @@ function LoginPage({users, setUsers, onLogin}) {
 
       {/* LEFT — BRANDING PANEL */}
       <div style={{flex:"1 1 380px",minHeight:"min(100vh,500px)",background:"linear-gradient(160deg,#0a0d15 0%,#0e1225 40%,#111a38 100%)",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"clamp(30px,5vw,60px) clamp(20px,4vw,50px)",position:"relative",overflow:"hidden"}}>
-        {/* Decorative grid dots */}
         <div style={{position:"absolute",inset:0,opacity:.06,backgroundImage:"radial-gradient(circle,#3b82f6 1px,transparent 1px)",backgroundSize:"32px 32px"}}/>
-        {/* Glow orb */}
         <div style={{position:"absolute",top:"20%",left:"30%",width:300,height:300,background:"radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%)",borderRadius:"50%",filter:"blur(60px)",animation:"gridFloat 8s ease-in-out infinite"}}/>
         <div style={{position:"absolute",bottom:"15%",right:"20%",width:200,height:200,background:"radial-gradient(circle,rgba(99,102,241,.1) 0%,transparent 70%)",borderRadius:"50%",filter:"blur(50px)",animation:"gridFloat 6s ease-in-out infinite 2s"}}/>
 
@@ -595,7 +572,6 @@ function LoginPage({users, setUsers, onLogin}) {
           <div style={{fontSize:28,fontWeight:800,lineHeight:1.25,color:"#e2e8f0",marginBottom:14,letterSpacing:-.5}}>Run your construction<br/>business from one place.</div>
           <div style={{fontSize:14,color:"#4a566e",lineHeight:1.7,marginBottom:36}}>Estimates, projects, invoices, job costing, materials, subs — everything a GC needs to stay profitable and organized.</div>
 
-          {/* Feature pills */}
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {["Estimates","Job Costing","Invoicing","Change Orders","Subcontractors","Reports"].map(f=>(
               <span key={f} style={{fontSize:10,fontWeight:600,padding:"5px 12px",borderRadius:20,background:"rgba(59,130,246,.08)",border:"1px solid rgba(59,130,246,.15)",color:"#63b3ed"}}>{f}</span>
@@ -604,12 +580,12 @@ function LoginPage({users, setUsers, onLogin}) {
         </div>
       </div>
 
-      {/* RIGHT — FORM PANEL */}
+      {/* RIGHT — LOGIN FORM */}
       <div style={{flex:"1 1 380px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"clamp(24px,4vw,40px) clamp(16px,4vw,50px)",minHeight:"auto"}}>
         <div style={{width:"100%",maxWidth:400,animation:"slideUp .4s ease"}}>
           <div style={{marginBottom:28}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#e2e8f0",marginBottom:6}}>{mode==="login"?"Welcome back":"Create your account"}</div>
-            <div style={{fontSize:13,color:"#4a566e"}}>{mode==="login"?"Sign in to your ContractorOS workspace":"Get started with ContractorOS in seconds"}</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#e2e8f0",marginBottom:6}}>Welcome back</div>
+            <div style={{fontSize:13,color:"#4a566e"}}>Sign in to your ContractorOS workspace</div>
           </div>
 
           {error&&(
@@ -619,38 +595,11 @@ function LoginPage({users, setUsers, onLogin}) {
           )}
 
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {mode==="signup"&&(
-              <>
-                <div>
-                  <label style={{fontSize:11,color:"#4a566e",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:5,display:"block"}}>Full Name</label>
-                  <div style={{position:"relative"}}>
-                    <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#3a4160",pointerEvents:"none"}}><I n="employees" s={15}/></div>
-                    <input style={{...inputStyle,paddingLeft:38}} placeholder="Jason Braddock" value={name} onChange={e=>{setName(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&handleSignup()}/>
-                  </div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div>
-                    <label style={{fontSize:11,color:"#4a566e",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:5,display:"block"}}>Phone</label>
-                    <div style={{position:"relative"}}>
-                      <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#3a4160",pointerEvents:"none"}}><I n="phone" s={14}/></div>
-                      <input style={{...inputStyle,paddingLeft:36}} placeholder="(555) 000-0000" value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSignup()}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{fontSize:11,color:"#4a566e",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:5,display:"block"}}>Role</label>
-                    <select style={{...inputStyle,cursor:"pointer"}} value={role} onChange={e=>setRole(e.target.value)}>
-                      {USER_ROLES.map(r=><option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </>
-            )}
-
             <div>
               <label style={{fontSize:11,color:"#4a566e",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:5,display:"block"}}>Email</label>
               <div style={{position:"relative"}}>
                 <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#3a4160",pointerEvents:"none"}}><I n="mail" s={15}/></div>
-                <input style={{...inputStyle,paddingLeft:38}} type="email" placeholder="you@company.com" value={email} onChange={e=>{setEmail(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?handleLogin():handleSignup())}/>
+                <input style={{...inputStyle,paddingLeft:38}} type="email" placeholder="you@company.com" value={email} onChange={e=>{setEmail(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
               </div>
             </div>
 
@@ -658,42 +607,38 @@ function LoginPage({users, setUsers, onLogin}) {
               <label style={{fontSize:11,color:"#4a566e",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:5,display:"block"}}>Password</label>
               <div style={{position:"relative"}}>
                 <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#3a4160",pointerEvents:"none"}}><I n="lock" s={15}/></div>
-                <input style={{...inputStyle,paddingLeft:38,paddingRight:42}} type={showPass?"text":"password"} placeholder={mode==="signup"?"Min 6 characters":"Enter password"} value={pass} onChange={e=>{setPass(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?handleLogin():handleSignup())}/>
+                <input style={{...inputStyle,paddingLeft:38,paddingRight:42}} type={showPass?"text":"password"} placeholder="Enter password" value={pass} onChange={e=>{setPass(e.target.value);setError("");}} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
                 <button onClick={()=>setShowPass(!showPass)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"#3a4160",padding:4,display:"flex"}}><I n={showPass?"eye-off":"eye"} s={15}/></button>
               </div>
             </div>
 
-            <button onClick={mode==="login"?handleLogin:handleSignup} disabled={loading} style={{width:"100%",padding:"13px 0",borderRadius:10,background:loading?"#1e2535":"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:loading?"default":"pointer",transition:"all .2s",boxShadow:loading?"none":"0 6px 24px rgba(59,130,246,.35)",fontFamily:"'DM Sans',system-ui,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-              {loading ? (<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid #fff",borderRadius:"50%",animation:"pulse 1s linear infinite"}}/> Signing {mode==="login"?"in":"up"}…</>) : (mode==="login"?"Sign In":"Create Account")}
+            <button onClick={handleLogin} disabled={loading} style={{width:"100%",padding:"13px 0",borderRadius:10,background:loading?"#1e2535":"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:loading?"default":"pointer",transition:"all .2s",boxShadow:loading?"none":"0 6px 24px rgba(59,130,246,.35)",fontFamily:"'DM Sans',system-ui,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              {loading ? (<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid #fff",borderRadius:"50%",animation:"pulse 1s linear infinite"}}/> Signing in…</>) : "Sign In"}
             </button>
           </div>
 
-          {/* Toggle login/signup */}
-          <div style={{textAlign:"center",marginTop:22,fontSize:13,color:"#4a566e"}}>
-            {mode==="login"?"Don't have an account? ":"Already have an account? "}
-            <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setPass("");}} style={{color:"#3b82f6",fontWeight:700,fontSize:13,textDecoration:"none",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>{mode==="login"?"Sign Up":"Sign In"}</button>
+          <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"#3a4160"}}>
+            Contact your administrator for account access
           </div>
 
           {/* Demo quick login */}
-          {mode==="login"&&(
-            <div style={{marginTop:28,borderTop:"1px solid #111826",paddingTop:20}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#3a4160",textTransform:"uppercase",letterSpacing:1,marginBottom:10,textAlign:"center"}}>Quick Demo Access</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                {users.filter(u=>u.status==="active").slice(0,4).map(u=>{
-                  const rc=USER_ROLE_C[u.role]||"#3b82f6";
-                  return (
-                    <button key={u.id} onClick={()=>demoLogin(u)} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 12px",background:"#0c0f17",border:"1px solid #1e2535",borderRadius:9,cursor:"pointer",transition:"all .18s",textAlign:"left"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=rc;e.currentTarget.style.background=`${rc}08`;}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#1e2535";e.currentTarget.style.background="#0c0f17";}}>
-                      <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${rc}88)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff",flexShrink:0}}>{ini(u.name)}</div>
-                      <div style={{overflow:"hidden"}}>
-                        <div style={{fontSize:11,fontWeight:700,color:"#c8d0e0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.name}</div>
-                        <div style={{fontSize:9,color:rc,fontWeight:600}}>{u.role}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          <div style={{marginTop:28,borderTop:"1px solid #111826",paddingTop:20}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#3a4160",textTransform:"uppercase",letterSpacing:1,marginBottom:10,textAlign:"center"}}>Quick Demo Access</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {users.filter(u=>u.status==="active").slice(0,4).map(u=>{
+                const rc=USER_ROLE_C[u.role]||"#3b82f6";
+                return (
+                  <button key={u.id} onClick={()=>demoLogin(u)} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 12px",background:"#0c0f17",border:"1px solid #1e2535",borderRadius:9,cursor:"pointer",transition:"all .18s",textAlign:"left"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=rc;e.currentTarget.style.background=rc+"08";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#1e2535";e.currentTarget.style.background="#0c0f17";}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,"+rc+","+rc+"88)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:"#fff",flexShrink:0}}>{ini(u.name)}</div>
+                    <div style={{overflow:"hidden"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#c8d0e0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.name}</div>
+                      <div style={{fontSize:9,color:rc,fontWeight:600}}>{u.role}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -816,7 +761,88 @@ export default function App() {
 
   const overdue = invs.filter(i=>i.status==="overdue");
   const overdueAmt = overdue.reduce((s,i)=>s+calcInv(i.lineItems,i.taxRate,i.discount||0).total,0);
-  const sh = {custs,setCusts,ests,setEsts,projs,setProjs,mats,setMats,subs,setSubs,roles,setRoles,hrs,setHrs,invs,setInvs,cos,setCos,expenses,setExpenses,company,setCompany,users,setUsers,auth,setAuth:handleAuth,showToast,setTab,handleLogout};
+
+  // ── API Auto-Sync Layer ────────────────────────────
+  // Intercepts setState calls, updates UI instantly, then syncs to API.
+  // Strips fields Prisma won't accept on create/update.
+  const stripMeta = (obj) => {
+    const copy = {...obj};
+    delete copy.createdAt; delete copy.updatedAt;
+    delete copy.company; delete copy.customer; delete copy.project;
+    delete copy.estimate; delete copy.sub; delete copy.timeEntries;
+    delete copy.invoices; delete copy.estimates; delete copy.projects;
+    delete copy.changeOrders; delete copy.expenses;
+    return copy;
+  };
+
+  const makeSync = (rawSet, apiResource, currentRef) => {
+    return (updater) => {
+      const prev = currentRef.current;
+      rawSet(updater);
+      // Run sync AFTER setState, not inside it
+      setTimeout(() => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (!Array.isArray(prev) || !Array.isArray(next)) return;
+        const prevMap = {};
+        prev.forEach(x => { prevMap[x.id] = x; });
+        const nextMap = {};
+        next.forEach(x => { nextMap[x.id] = x; });
+
+        // Created
+        next.forEach(item => {
+          if (!prevMap[item.id]) {
+            var clean = stripMeta(item);
+            // Keep string IDs (EST-2026-001, PRJ-*, INV-*, CO-*) — they ARE the PK
+            // Strip numeric IDs — let the DB auto-assign
+            if (typeof clean.id === 'number') delete clean.id;
+            apiResource.create(clean).catch(e => console.error('API create:', e.message));
+          }
+        });
+        // Deleted
+        prev.forEach(item => {
+          if (!nextMap[item.id]) {
+            apiResource.remove(item.id).catch(e => console.error('API delete:', e.message));
+          }
+        });
+        // Updated
+        next.forEach(item => {
+          if (prevMap[item.id] && JSON.stringify(prevMap[item.id]) !== JSON.stringify(item)) {
+            var clean = stripMeta(item);
+            // Strip id from update payload — it's in the URL
+            delete clean.id;
+            apiResource.update(item.id, clean).catch(e => console.error('API update:', e.message));
+          }
+        });
+      }, 0);
+    };
+  };
+
+  // Refs to track current state (needed to compare prev vs next outside setState)
+  const custsRef = React.useRef(custs); custsRef.current = custs;
+  const estsRef = React.useRef(ests); estsRef.current = ests;
+  const projsRef = React.useRef(projs); projsRef.current = projs;
+  const matsRef = React.useRef(mats); matsRef.current = mats;
+  const subsRef = React.useRef(subs); subsRef.current = subs;
+  const rolesRef = React.useRef(roles); rolesRef.current = roles;
+  const hrsRef = React.useRef(hrs); hrsRef.current = hrs;
+  const invsRef = React.useRef(invs); invsRef.current = invs;
+  const cosRef = React.useRef(cos); cosRef.current = cos;
+  const expRef = React.useRef(expenses); expRef.current = expenses;
+  const usersRef = React.useRef(users); usersRef.current = users;
+
+  const setCustsSync    = makeSync(setCusts, api.customers, custsRef);
+  const setEstsSync     = makeSync(setEsts, api.estimates, estsRef);
+  const setProjsSync    = makeSync(setProjs, api.projects, projsRef);
+  const setMatsSync     = makeSync(setMats, api.materials, matsRef);
+  const setSubsSync     = makeSync(setSubs, api.subcontractors, subsRef);
+  const setRolesSync    = makeSync(setRoles, api.laborRoles, rolesRef);
+  const setHrsSync      = makeSync(setHrs, api.timeEntries, hrsRef);
+  const setInvsSync     = makeSync(setInvs, api.invoices, invsRef);
+  const setCosSync      = makeSync(setCos, api.changeOrders, cosRef);
+  const setExpensesSync = makeSync(setExpenses, api.expenses, expRef);
+  const setUsersSync    = makeSync(setUsers, api.users, usersRef);
+
+  const sh = {custs,setCusts:setCustsSync,ests,setEsts:setEstsSync,projs,setProjs:setProjsSync,mats,setMats:setMatsSync,subs,setSubs:setSubsSync,roles,setRoles:setRolesSync,hrs,setHrs:setHrsSync,invs,setInvs:setInvsSync,cos,setCos:setCosSync,expenses,setExpenses:setExpensesSync,company,setCompany,users,setUsers:setUsersSync,auth,setAuth:handleAuth,showToast,setTab,handleLogout};
 
   // ── Loading screen ─────────────────────────────────
   if (!dataLoaded && auth) return (

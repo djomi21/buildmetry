@@ -6,35 +6,9 @@ const { authenticate } = require('../middleware/auth');
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// POST /api/auth/signup
-router.post('/signup', async (req, res) => {
-  try {
-    const { name, email, password, phone, role, companyName } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email, and password required' });
-    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (exists) return res.status(409).json({ error: 'Email already in use' });
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    // Create company + user in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const company = await tx.company.create({
-        data: { name: companyName || `${name}'s Company`, email: email.toLowerCase() }
-      });
-      const user = await tx.user.create({
-        data: { companyId: company.id, name, email: email.toLowerCase(), passwordHash, phone, role: role || 'Owner', status: 'active', lastLogin: new Date() }
-      });
-      return { company, user };
-    });
-
-    const token = jwt.sign({ userId: result.user.id, companyId: result.company.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
-    const { passwordHash: _, ...safeUser } = result.user;
-    res.status(201).json({ token, user: safeUser });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Signup failed' });
-  }
+// POST /api/auth/signup — DISABLED (users are added by admin via Company Setup)
+router.post('/signup', (req, res) => {
+  res.status(403).json({ error: 'Public registration is disabled. Contact your administrator.' });
 });
 
 // POST /api/auth/login
