@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Fields allowed for user create/update
-var USER_FIELDS = ['name', 'email', 'phone', 'role', 'status', 'avatar', 'lastLogin'];
+var USER_FIELDS = ['name', 'email', 'phone', 'role', 'status', 'avatar', 'lastLogin', 'notifPrefs'];
 
 function pickFields(body, fields) {
   var clean = {};
@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req, res) => {
     var items = await prisma.user.findMany({
       where: { companyId: req.companyId },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, companyId: true, name: true, email: true, phone: true, role: true, status: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true }
+      select: { id: true, companyId: true, name: true, email: true, phone: true, role: true, status: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true, notifPrefs: true }
     });
     res.json(items);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -33,7 +33,7 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     var item = await prisma.user.findFirst({
       where: { id: Number(req.params.id), companyId: req.companyId },
-      select: { id: true, companyId: true, name: true, email: true, phone: true, role: true, status: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true }
+      select: { id: true, companyId: true, name: true, email: true, phone: true, role: true, status: true, avatar: true, lastLogin: true, createdAt: true, updatedAt: true, notifPrefs: true }
     });
     if (!item) return res.status(404).json({ error: 'Not found' });
     res.json(item);

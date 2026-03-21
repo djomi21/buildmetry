@@ -87,6 +87,7 @@ model User {
   status              String    @default("active")
   avatar              String?   @db.Text
   mustChangePassword  Boolean   @default(false)
+  notifPrefs          Json?     @default("{}")
   lastLogin           DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

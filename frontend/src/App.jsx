@@ -3085,20 +3085,29 @@ function UserProfile({auth,setAuth,updateAuth,users,setUsers,company,showToast,s
           </div>
           <div style={{padding:"18px 22px",display:"flex",flexDirection:"column",gap:14}}>
             {[
-              {k:"email_invoices",l:"Invoice Reminders",d:"Get notified when invoices are sent, paid, or overdue",default:true},
-              {k:"email_projects",l:"Project Updates",d:"Notifications for project milestones and status changes",default:true},
-              {k:"email_estimates",l:"Estimate Activity",d:"When estimates are viewed, approved, or declined",default:true},
-              {k:"email_cos",l:"Change Orders",d:"New change order requests and approvals",default:false},
-              {k:"email_weekly",l:"Weekly Summary",d:"A weekly digest of your business performance",default:true},
-            ].map(n=>(
-              <div key={n.k} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#c8d0e0"}}>{n.l}</div>
-                  <div style={{fontSize:10,color:"#4a566e",marginTop:2}}>{n.d}</div>
+              {k:"email_invoices",l:"Invoice Reminders",d:"Get notified when invoices are sent, paid, or overdue"},
+              {k:"email_projects",l:"Project Updates",d:"Notifications for project milestones and status changes"},
+              {k:"email_estimates",l:"Estimate Activity",d:"When estimates are viewed, approved, or declined"},
+              {k:"email_cos",l:"Change Orders",d:"New change order requests and approvals"},
+              {k:"email_weekly",l:"Weekly Summary",d:"A weekly digest of your business performance"},
+            ].map(n=>{
+              var prefs = auth.notifPrefs || {};
+              var isOn = prefs[n.k] !== undefined ? prefs[n.k] : true;
+              return (
+                <div key={n.k} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#c8d0e0"}}>{n.l}</div>
+                    <div style={{fontSize:10,color:"#4a566e",marginTop:2}}>{n.d}</div>
+                  </div>
+                  <ToggleSwitch on={isOn} onChange={function(val){
+                    var newPrefs = {...(auth.notifPrefs || {}), [n.k]: val};
+                    var updated = {...auth, notifPrefs: newPrefs};
+                    updateAuth(updated);
+                    api.users.update(auth.id, {notifPrefs: newPrefs}).catch(function(e){ console.error('notif save:', e.message); });
+                  }}/>
                 </div>
-                <ToggleSwitch defaultOn={n.default}/>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
