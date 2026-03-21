@@ -708,6 +708,7 @@ export default function App() {
         setCusts(c); setEsts(e); setProjs(p); setMats(m);
         setSubs(s); setRoles(r); setHrs(h); setInvs(i);
         setCos(co); setExpenses(ex); setUsers(u);
+        console.log('COMPANY FROM API:', comp?.id, comp?.name, comp?.themeAccent);
         if (comp?.id) setCompany(comp);
       } catch (err) {
         console.error("Failed to load data:", err);
@@ -3009,11 +3010,17 @@ function ToggleSwitch({defaultOn=false,on:controlledOn,onChange}) {
 // ══════════════════════════════════════════════════════════════
 function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setRoles}) {
   const [stab, setStab] = useState("users");
-  const [form, setForm] = useState({...company});
   const [dirty, setDirty] = useState(false);
-
-  // Sync form when company data reloads from API
-  useEffect(()=>{if(!dirty)setForm({...company});},[company]);
+  // Always initialize form from latest company data
+  const [form, setForm] = useState({...company});
+  // Re-sync form from company whenever company changes (e.g., after API load or save)
+  const companyJson = JSON.stringify(company);
+  useEffect(()=>{
+    if(!dirty){
+      console.log('SYNC FORM FROM COMPANY:', company?.name, company?.themeAccent);
+      setForm({...company});
+    }
+  },[companyJson]);
   const [uForm, setUForm] = useState(null);
   const [srch, setSrch] = useState("");
   const [roleF, setRoleF] = useState("All");
@@ -3023,7 +3030,6 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
   const upd=(k,v)=>{setForm(f=>({...f,[k]:v}));setDirty(true);};
   const saveCompany=async ()=>{
     try {
-      // Only send fields the DB accepts — strip users, nested objects, etc.
       var data = {};
       ['name','owner','phone','email','address','website','license','ein','logo',
        'defaultTaxRate','paymentTerms','laborBurdenDefault','invoiceFooter','estimateFooter',
@@ -3036,15 +3042,16 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
        'themeAccent','themeName'
       ].forEach(function(k){ if(form[k]!==undefined) data[k]=form[k]; });
       console.log('SAVE COMPANY:', data);
-      await api.company.update(data);
-      setCompany({...form});
+      var result = await api.company.update(data);
+      console.log('SAVE COMPANY OK:', result);
+      // Use the server response to update state — this is the source of truth
+      setCompany(result);
+      setForm({...result});
       setDirty(false);
       showToast("Company settings saved");
     } catch(err) {
       console.error('SAVE COMPANY FAIL:', err);
-      setCompany({...form});
-      setDirty(false);
-      showToast("Saved locally (API error: "+err.message+")");
+      showToast("Save failed: "+err.message,"error");
     }
   };
 
