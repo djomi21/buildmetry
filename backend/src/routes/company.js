@@ -4,8 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Fields that Prisma accepts for Company update
-const ALLOWED = [
+var ALLOWED = [
   'name','owner','phone','email','address','website','license','ein','logo',
   'defaultTaxRate','paymentTerms','laborBurdenDefault','invoiceFooter','estimateFooter',
   'smtpHost','smtpPort','smtpUser','smtpPass','smtpSecure',
@@ -25,25 +24,47 @@ function pickAllowed(body) {
   return clean;
 }
 
-// GET /api/company — returns the company for the logged-in user
+// GET /api/company
 router.get('/', authenticate, async (req, res) => {
   try {
     var company = await prisma.company.findUnique({ where: { id: req.companyId } });
     if (!company) return res.status(404).json({ error: 'Company not found' });
     res.json(company);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('GET company error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PUT /api/company/:id — update company settings
+// PUT /api/company — uses companyId from JWT token
+router.put('/', authenticate, async (req, res) => {
+  try {
+    var data = pickAllowed(req.body);
+    console.log('UPDATE company id=' + req.companyId + ', fields:', Object.keys(data));
+    var company = await prisma.company.update({
+      where: { id: req.companyId },
+      data: data
+    });
+    res.json(company);
+  } catch (err) {
+    console.error('PUT company error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/company/:id — fallback for old clients
 router.put('/:id', authenticate, async (req, res) => {
   try {
     var data = pickAllowed(req.body);
     var company = await prisma.company.update({
-      where: { id: Number(req.params.id) },
+      where: { id: Number(req.params.id) || req.companyId },
       data: data
     });
     res.json(company);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('PUT company/:id error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

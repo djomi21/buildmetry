@@ -3011,6 +3011,9 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
   const [stab, setStab] = useState("users");
   const [form, setForm] = useState({...company});
   const [dirty, setDirty] = useState(false);
+
+  // Sync form when company data reloads from API
+  useEffect(()=>{if(!dirty)setForm({...company});},[company]);
   const [uForm, setUForm] = useState(null);
   const [srch, setSrch] = useState("");
   const [roleF, setRoleF] = useState("All");
@@ -3306,7 +3309,7 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
               <div style={{fontSize:11,color:"#4a566e",marginTop:2}}>Configure outgoing email for estimates, invoices, and payment reminders</div>
             </div>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setTestingEmail(true);setTimeout(()=>{setTestingEmail(false);showToast("Test email sent to "+form.smtpUser);},1500);}} disabled={testingEmail} className="bb b-am" style={{padding:"8px 14px",fontSize:11}}><I n="send" s={12}/>{testingEmail?"Sending...":"Send Test"}</button>
+              <button onClick={async ()=>{setTestingEmail(true);try{await saveCompany();await api.email.test();showToast("Test email sent to "+form.smtpUser);}catch(err){showToast("Test failed: "+err.message,"error");}setTestingEmail(false);}} disabled={testingEmail} className="bb b-am" style={{padding:"8px 14px",fontSize:11}}><I n="send" s={12}/>{testingEmail?"Sending...":"Send Test"}</button>
               <button onClick={saveCompany} className={`bb ${dirty?"b-bl":"b-gh"}`} style={{padding:"8px 18px",fontSize:12}}><I n="check" s={13}/>Save</button>
             </div>
           </div>

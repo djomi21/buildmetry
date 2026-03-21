@@ -106,7 +106,7 @@ export const api = {
   // ── Company (single resource) ──────────────────────
   company: {
     get:    ()     => request('GET',  '/company'),
-    update: (data) => request('PUT',  '/company/1', data),
+    update: (data) => request('PUT',  '/company', data),
   },
 
   // ── Email ──────────────────────────────────────────
