@@ -762,87 +762,49 @@ export default function App() {
   const overdue = invs.filter(i=>i.status==="overdue");
   const overdueAmt = overdue.reduce((s,i)=>s+calcInv(i.lineItems,i.taxRate,i.discount||0).total,0);
 
-  // ── API Auto-Sync Layer ────────────────────────────
-  // Intercepts setState calls, updates UI instantly, then syncs to API.
-  // Strips fields Prisma won't accept on create/update.
-  const stripMeta = (obj) => {
-    const copy = {...obj};
-    delete copy.createdAt; delete copy.updatedAt;
-    delete copy.company; delete copy.customer; delete copy.project;
-    delete copy.estimate; delete copy.sub; delete copy.timeEntries;
-    delete copy.invoices; delete copy.estimates; delete copy.projects;
-    delete copy.changeOrders; delete copy.expenses;
-    return copy;
+  // ── DB Helpers ─────────────────────────────────────
+  // Each function: 1) updates React state instantly, 2) calls API in background
+  // Components call db.custs.create(item), db.custs.update(id, changes), db.custs.remove(id)
+  const strip = (obj) => {
+    var c = {...obj};
+    delete c.createdAt; delete c.updatedAt; delete c.company; delete c.customer;
+    delete c.project; delete c.estimate; delete c.sub; delete c.timeEntries;
+    delete c.invoices; delete c.estimates; delete c.projects; delete c.changeOrders; delete c.expenses;
+    return c;
   };
 
-  const makeSync = (rawSet, apiResource, currentRef) => {
-    return (updater) => {
-      const prev = currentRef.current;
-      rawSet(updater);
-      // Run sync AFTER setState, not inside it
-      setTimeout(() => {
-        const next = typeof updater === 'function' ? updater(prev) : updater;
-        if (!Array.isArray(prev) || !Array.isArray(next)) return;
-        const prevMap = {};
-        prev.forEach(x => { prevMap[x.id] = x; });
-        const nextMap = {};
-        next.forEach(x => { nextMap[x.id] = x; });
+  const makeDb = (rawSet, apiRes) => ({
+    create: (item) => {
+      rawSet(prev => [item, ...prev]);
+      var c = strip(item); if (typeof c.id === 'number') delete c.id;
+      apiRes.create(c).catch(e => console.error('db.create:', e.message));
+    },
+    update: (id, changes) => {
+      rawSet(prev => prev.map(x => x.id === id ? {...x, ...changes} : x));
+      var c = strip(changes); delete c.id;
+      apiRes.update(id, c).catch(e => console.error('db.update:', e.message));
+    },
+    remove: (id) => {
+      rawSet(prev => prev.filter(x => x.id !== id));
+      apiRes.remove(id).catch(e => console.error('db.remove:', e.message));
+    },
+  });
 
-        // Created
-        next.forEach(item => {
-          if (!prevMap[item.id]) {
-            var clean = stripMeta(item);
-            // Keep string IDs (EST-2026-001, PRJ-*, INV-*, CO-*) — they ARE the PK
-            // Strip numeric IDs — let the DB auto-assign
-            if (typeof clean.id === 'number') delete clean.id;
-            apiResource.create(clean).catch(e => console.error('API create:', e.message));
-          }
-        });
-        // Deleted
-        prev.forEach(item => {
-          if (!nextMap[item.id]) {
-            apiResource.remove(item.id).catch(e => console.error('API delete:', e.message));
-          }
-        });
-        // Updated
-        next.forEach(item => {
-          if (prevMap[item.id] && JSON.stringify(prevMap[item.id]) !== JSON.stringify(item)) {
-            var clean = stripMeta(item);
-            // Strip id from update payload — it's in the URL
-            delete clean.id;
-            apiResource.update(item.id, clean).catch(e => console.error('API update:', e.message));
-          }
-        });
-      }, 0);
-    };
+  const db = {
+    custs:    makeDb(setCusts, api.customers),
+    ests:     makeDb(setEsts, api.estimates),
+    projs:    makeDb(setProjs, api.projects),
+    mats:     makeDb(setMats, api.materials),
+    subs:     makeDb(setSubs, api.subcontractors),
+    roles:    makeDb(setRoles, api.laborRoles),
+    hrs:      makeDb(setHrs, api.timeEntries),
+    invs:     makeDb(setInvs, api.invoices),
+    cos:      makeDb(setCos, api.changeOrders),
+    expenses: makeDb(setExpenses, api.expenses),
+    users:    makeDb(setUsers, api.users),
   };
 
-  // Refs to track current state (needed to compare prev vs next outside setState)
-  const custsRef = React.useRef(custs); custsRef.current = custs;
-  const estsRef = React.useRef(ests); estsRef.current = ests;
-  const projsRef = React.useRef(projs); projsRef.current = projs;
-  const matsRef = React.useRef(mats); matsRef.current = mats;
-  const subsRef = React.useRef(subs); subsRef.current = subs;
-  const rolesRef = React.useRef(roles); rolesRef.current = roles;
-  const hrsRef = React.useRef(hrs); hrsRef.current = hrs;
-  const invsRef = React.useRef(invs); invsRef.current = invs;
-  const cosRef = React.useRef(cos); cosRef.current = cos;
-  const expRef = React.useRef(expenses); expRef.current = expenses;
-  const usersRef = React.useRef(users); usersRef.current = users;
-
-  const setCustsSync    = makeSync(setCusts, api.customers, custsRef);
-  const setEstsSync     = makeSync(setEsts, api.estimates, estsRef);
-  const setProjsSync    = makeSync(setProjs, api.projects, projsRef);
-  const setMatsSync     = makeSync(setMats, api.materials, matsRef);
-  const setSubsSync     = makeSync(setSubs, api.subcontractors, subsRef);
-  const setRolesSync    = makeSync(setRoles, api.laborRoles, rolesRef);
-  const setHrsSync      = makeSync(setHrs, api.timeEntries, hrsRef);
-  const setInvsSync     = makeSync(setInvs, api.invoices, invsRef);
-  const setCosSync      = makeSync(setCos, api.changeOrders, cosRef);
-  const setExpensesSync = makeSync(setExpenses, api.expenses, expRef);
-  const setUsersSync    = makeSync(setUsers, api.users, usersRef);
-
-  const sh = {custs,setCusts:setCustsSync,ests,setEsts:setEstsSync,projs,setProjs:setProjsSync,mats,setMats:setMatsSync,subs,setSubs:setSubsSync,roles,setRoles:setRolesSync,hrs,setHrs:setHrsSync,invs,setInvs:setInvsSync,cos,setCos:setCosSync,expenses,setExpenses:setExpensesSync,company,setCompany,users,setUsers:setUsersSync,auth,setAuth:handleAuth,showToast,setTab,handleLogout};
+  const sh = {custs,setCusts,ests,setEsts,projs,setProjs,mats,setMats,subs,setSubs,roles,setRoles,hrs,setHrs,invs,setInvs,cos,setCos,expenses,setExpenses,company,setCompany,users,setUsers,auth,setAuth:handleAuth,showToast,setTab,handleLogout,db};
 
   // ── Loading screen ─────────────────────────────────
   if (!dataLoaded && auth) return (
@@ -1068,7 +1030,7 @@ function Dashboard({custs,ests,projs,invs,setTab}) {
 // ══════════════════════════════════════════════════════════════
 // CUSTOMERS
 // ══════════════════════════════════════════════════════════════
-function Customers({custs,setCusts,invs,ests,projs,showToast}) {
+function Customers({custs,setCusts,invs,ests,projs,showToast,db}) {
   const [sel,  setSel]   = useState(custs[0]?.id||null);
   const [srch, setSrch]  = useState("");
   const [tagF, setTagF]  = useState("All");
@@ -1095,17 +1057,18 @@ function Customers({custs,setCusts,invs,ests,projs,showToast}) {
   const save=()=>{
     if(!form.name.trim()){showToast("Name required","error");return;}
     if(form._id){
-      setCusts(cs=>cs.map(c=>c.id===form._id?{...c,...form}:c));
+      var changes={...form}; delete changes._id;
+      db.custs.update(form._id, changes);
       showToast("Customer updated");
     } else {
       const nc={...form,id:uid(),totalRevenue:0,createdAt:tod()};
-      setCusts(cs=>[nc,...cs]);
+      db.custs.create(nc);
       setSel(nc.id);
       showToast("Customer added");
     }
     setForm(null);
   };
-  const del=id=>{setCusts(cs=>cs.filter(c=>c.id!==id));if(sel===id)setSel(null);showToast("Removed");};
+  const del=id=>{db.custs.remove(id);if(sel===id)setSel(null);showToast("Removed");};
 
   return (
     <div className="spl">
@@ -1244,7 +1207,7 @@ function Customers({custs,setCusts,invs,ests,projs,showToast}) {
             {dtab==="notes"&&(
               <div style={{background:"#0c0f17",border:"1px solid #111826",borderRadius:12,padding:16}}>
                 <div className="stl">Client Notes</div>
-                <textarea defaultValue={sc.notes} onBlur={e=>{setCusts(cs=>cs.map(c=>c.id===sc.id?{...c,notes:e.target.value}:c));showToast("Notes saved");}} rows={10} className="inp" placeholder="Notes…" style={{resize:"vertical",lineHeight:1.7,fontSize:13}}/>
+                <textarea defaultValue={sc.notes} onBlur={e=>{db.custs.update(sc.id,{notes:e.target.value});showToast("Notes saved");}} rows={10} className="inp" placeholder="Notes…" style={{resize:"vertical",lineHeight:1.7,fontSize:13}}/>
                 <div style={{fontSize:10,color:"#2d3a52",marginTop:6}}>Auto-saves on blur.</div>
               </div>
             )}
@@ -1306,7 +1269,7 @@ function Customers({custs,setCusts,invs,ests,projs,showToast}) {
 // ══════════════════════════════════════════════════════════════
 // ESTIMATES
 // ══════════════════════════════════════════════════════════════
-function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,company,showToast,setTab}) {
+function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,company,showToast,setTab,db}) {
   const [sel,  setSel]  = useState(ests[0]?.id||null);
   const [srch, setSrch] = useState("");
   const [stF,  setStF]  = useState("all");
@@ -1351,13 +1314,12 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
     const lines=form.lineItems.filter(l=>l.description.trim());
     const c=calcInv(lines,Number(form.taxRate),Number(form.discount)||0);
     const data={...form,custId:Number(form.custId)||form.custId,subtotal:c.sub,materialSubtotal:c.mat,discount:Number(form.discount)||0,lineItems:lines};
-    if(form._id){setEsts(es=>es.map(e=>e.id===form._id?{...e,...data}:e));showToast("Updated");}
-    else{const id=nxtNum(ests,"EST");const ne={...data,id,number:id};setEsts(es=>[ne,...es]);setSel(id);showToast(`${id} created`);}
+    if(form._id){var ch={...data};delete ch._id;db.ests.update(form._id,ch);showToast("Updated");}
+    else{const id=nxtNum(ests,"EST");const ne={...data,id,number:id};db.ests.create(ne);setSel(id);showToast(id+" created");}
     setForm(null);
   };
   const markSt=(id,st)=>{
     if(st==="approved"){
-      // Auto-create project from estimate on approval
       const est=ests.find(e=>e.id===id);
       if(est&&!est.projId){
         const c=calcInv(est.lineItems,est.taxRate,est.discount||0);
@@ -1369,23 +1331,23 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
           actualLabor:0,actualMaterials:0,
           start:tod(),end:addD(tod(),60),
           phase:"Planning",progress:0,
-          notes:`Auto-created from ${est.number}`
+          notes:"Auto-created from "+est.number
         };
-        setProjs(ps=>[np,...ps]);
-        setEsts(es=>es.map(e=>e.id===id?{...e,status:"approved",projId}:e));
-        showToast(`Approved → ${projId} created`);
+        db.projs.create(np);
+        db.ests.update(id,{status:"approved",projId:projId});
+        showToast("Approved → "+projId+" created");
         return;
       }
     }
-    setEsts(es=>es.map(e=>e.id===id?{...e,status:st}:e));
-    showToast(`Marked ${st}`);
+    db.ests.update(id,{status:st});
+    showToast("Marked "+st);
   };
   const toInvoice=e=>{
     const id=nxtNum(invs,"INV");
-    setInvs(is=>[{id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,paidDate:null,taxRate:e.taxRate,notes:`From ${e.number}`,lineItems:e.lineItems.map((l,i)=>({...l,id:i+1}))},...is]);
-    showToast(`${id} created`);setTab("invoices");
+    db.invs.create({id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,paidDate:null,taxRate:e.taxRate,notes:"From "+e.number,lineItems:e.lineItems.map(function(l,i){return{...l,id:i+1};})});
+    showToast(id+" created");setTab("invoices");
   };
-  const del=id=>{setEsts(es=>es.filter(e=>e.id!==id));if(sel===id)setSel(null);showToast("Deleted");};
+  const del=id=>{db.ests.remove(id);if(sel===id)setSel(null);showToast("Deleted");};
 
   const exportEst=(e,autoPrint=false)=>{
     const c=custs.find(x=>x.id===e.custId);const calc=calcInv(e.lineItems,e.taxRate,e.discount||0);
@@ -1738,7 +1700,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
 // ══════════════════════════════════════════════════════════════
 // PROJECTS
 // ══════════════════════════════════════════════════════════════
-function Projects({projs,setProjs,custs,showToast,setTab}) {
+function Projects({projs,setProjs,custs,showToast,setTab,db}) {
   const [sel,  setSel]  = useState(projs[0]?.id||null);
   const [form, setForm] = useState(null);
   const sp=projs.find(p=>p.id===sel)||null;
@@ -1751,8 +1713,8 @@ function Projects({projs,setProjs,custs,showToast,setTab}) {
     if(!form.name.trim()||!form.custId){showToast("Name and customer required","error");return;}
     const n=v=>Number(v)||0;
     const data={...form,custId:Number(form.custId)||form.custId,contractValue:n(form.contractValue),budgetLabor:n(form.budgetLabor),budgetMaterials:n(form.budgetMaterials),actualLabor:n(form.actualLabor),actualMaterials:n(form.actualMaterials),progress:n(form.progress)};
-    if(form._id){setProjs(ps=>ps.map(p=>p.id===form._id?{...p,...data}:p));showToast("Updated");}
-    else{const id=nxtNum(projs,"PRJ");const np={...data,id};setProjs(ps=>[np,...ps]);setSel(id);showToast(`${id} created`);}
+    if(form._id){var ch={...data};delete ch._id;db.projs.update(form._id,ch);showToast("Updated");}
+    else{const id=nxtNum(projs,"PRJ");const np={...data,id};db.projs.create(np);setSel(id);showToast(id+" created");}
     setForm(null);
   };
 
@@ -2028,7 +1990,7 @@ function JobCosting({projs,custs,hrs,subs,roles}) {
 // ══════════════════════════════════════════════════════════════
 // MATERIALS
 // ══════════════════════════════════════════════════════════════
-function Materials({mats,setMats,showToast}) {
+function Materials({mats,setMats,showToast,db}) {
   const [catF,setCatF]=useState("All");
   const [srch,setSrch]=useState("");
   const [form,setForm]=useState(null);
@@ -2049,11 +2011,11 @@ function Materials({mats,setMats,showToast}) {
     if(!form.name.trim()){showToast("Name required","error");return;}
     const n=v=>Number(v)||0;
     const data={...form,cost:n(form.cost),markup:n(form.markup),stock:n(form.stock),reorderAt:n(form.reorderAt)};
-    if(form._id){setMats(ms=>ms.map(m=>m.id===form._id?{...m,...data}:m));showToast("Updated");}
-    else{setMats(ms=>[...ms,{...data,id:uid()}]);showToast("Added");}
+    if(form._id){var ch={...data};delete ch._id;db.mats.update(form._id,ch);showToast("Updated");}
+    else{db.mats.create({...data,id:uid()});showToast("Added");}
     setForm(null);
   };
-  const del=id=>{setMats(ms=>ms.filter(m=>m.id!==id));showToast("Removed");};
+  const del=id=>{db.mats.remove(id);showToast("Removed");};
 
   const sellPrice=m=>m.cost*(1+m.markup/100);
 
@@ -2162,7 +2124,7 @@ function Materials({mats,setMats,showToast}) {
 // ══════════════════════════════════════════════════════════════
 // SUBCONTRACTORS
 // ══════════════════════════════════════════════════════════════
-function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast}) {
+function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db}) {
   const [sel,setSel]=useState(subs[0]?.id||null);
   const [form,setForm]=useState(null);
   const [hrForm,setHrForm]=useState(null);
@@ -2180,15 +2142,15 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast}) {
     if(!form.name.trim()){showToast("Name required","error");return;}
     const n=v=>Number(v)||0;
     const data={...form,hourlyWage:n(form.hourlyWage),billableRate:n(form.billableRate)};
-    if(form._id){setSubs(es=>es.map(e=>e.id===form._id?{...e,...data}:e));showToast("Updated");}
-    else{setSubs(es=>[...es,{...data,id:uid()}]);showToast("Added");}
+    if(form._id){var ch={...data};delete ch._id;db.subs.update(form._id,ch);showToast("Updated");}
+    else{db.subs.create({...data,id:uid()});showToast("Added");}
     setForm(null);
   };
 
   const blankHr={projId:projs[0]?.id||"",date:tod(),hours:"8",desc:"",approved:false};
   const logHrs=()=>{
     if(!hrForm.projId||!hrForm.hours){showToast("Project and hours required","error");return;}
-    setHrs(hs=>[...hs,{...hrForm,id:uid(),subId:sel,hours:Number(hrForm.hours)||0}]);
+    db.hrs.create({...hrForm,id:uid(),subId:sel,hours:Number(hrForm.hours)||0});
     showToast("Hours logged");setHrForm(null);
   };
 
@@ -2376,7 +2338,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast}) {
 // ══════════════════════════════════════════════════════════════
 // LABOR ROLES
 // ══════════════════════════════════════════════════════════════
-function LaborRoles({roles,setRoles,showToast}) {
+function LaborRoles({roles,setRoles,showToast,db}) {
   const [form,setForm]=useState(null);
   const [srch,setSrch]=useState("");
 
@@ -2390,15 +2352,15 @@ function LaborRoles({roles,setRoles,showToast}) {
     const n=v=>Number(v)||0;
     const data={...form,baseRate:n(form.baseRate),payrollPct:n(form.payrollPct),benefitsPct:n(form.benefitsPct)};
     if(form._id){
-      setRoles(rs=>rs.map(r=>r.id===form._id?{...r,...data}:r));
+      var ch={...data};delete ch._id;db.roles.update(form._id,ch);
       showToast("Role updated");
     } else {
-      setRoles(rs=>[...rs,{...data,id:uid()}]);
+      db.roles.create({...data,id:uid()});
       showToast("Role added");
     }
     setForm(null);
   };
-  const del=id=>{setRoles(rs=>rs.filter(r=>r.id!==id));showToast("Removed");};
+  const del=id=>{db.roles.remove(id);showToast("Removed");};
 
   const avgBurden=roles.length>0?Math.round(roles.reduce((s,r)=>s+(r.payrollPct+r.benefitsPct),0)/roles.length*10)/10:0;
   const avgBase=roles.length>0?Math.round(roles.reduce((s,r)=>s+r.baseRate,0)/roles.length*100)/100:0;
@@ -2512,7 +2474,7 @@ function LaborRoles({roles,setRoles,showToast}) {
 // ══════════════════════════════════════════════════════════════
 // CHANGE ORDERS
 // ══════════════════════════════════════════════════════════════
-function ChangeOrders({cos,setCos,projs,setProjs,custs,invs,setInvs,showToast,setTab}) {
+function ChangeOrders({cos,setCos,projs,setProjs,custs,invs,setInvs,showToast,setTab,db}) {
   const [form,setForm]=useState(null);
   const [stF,setStF]=useState("all");
 
@@ -2530,18 +2492,18 @@ function ChangeOrders({cos,setCos,projs,setProjs,custs,invs,setInvs,showToast,se
     const lab=Number(form.laborAmt)||0;const mat=Number(form.materialAmt)||0;
     const p=projs.find(x=>x.id===form.projId);
     const data={...form,laborAmt:lab,materialAmt:mat,totalAmt:lab+mat,custId:p?.custId||null,date:form.date||tod()};
-    if(form._id){setCos(cs=>cs.map(c=>c.id===form._id?{...c,...data}:c));showToast("Updated");}
-    else{const id=nxtNum(cos,"CO");setCos(cs=>[{...data,id,number:id,approvedBy:null,approvedDate:null},...cs]);showToast(`${id} created`);}
+    if(form._id){var ch={...data};delete ch._id;db.cos.update(form._id,ch);showToast("Updated");}
+    else{const id=nxtNum(cos,"CO");db.cos.create({...data,id,number:id,approvedBy:null,approvedDate:null});showToast(id+" created");}
     setForm(null);
   };
 
   const approve=co=>{
-    setCos(cs=>cs.map(c=>c.id===co.id?{...c,status:"approved",approvedBy:"Owner",approvedDate:tod()}:c));
-    setProjs(ps=>ps.map(p=>p.id===co.projId?{...p,contractValue:p.contractValue+co.totalAmt,budgetLabor:p.budgetLabor+co.laborAmt,budgetMaterials:p.budgetMaterials+co.materialAmt}:p));
+    db.cos.update(co.id,{status:"approved",approvedBy:"Owner",approvedDate:tod()});
+    db.projs.update(co.projId,{contractValue:projs.find(p=>p.id===co.projId).contractValue+co.totalAmt,budgetLabor:projs.find(p=>p.id===co.projId).budgetLabor+co.laborAmt,budgetMaterials:projs.find(p=>p.id===co.projId).budgetMaterials+co.materialAmt});
     showToast("Approved — project updated");
   };
-  const decline=id=>{setCos(cs=>cs.map(c=>c.id===id?{...c,status:"declined"}:c));showToast("Declined");};
-  const del=id=>{setCos(cs=>cs.filter(c=>c.id!==id));showToast("Removed");};
+  const decline=id=>{db.cos.update(id,{status:"declined"});showToast("Declined");};
+  const del=id=>{db.cos.remove(id);showToast("Removed");};
 
   const cnts={all:cos.length,pending:cos.filter(c=>c.status==="pending").length,approved:cos.filter(c=>c.status==="approved").length,declined:cos.filter(c=>c.status==="declined").length};
 
@@ -2632,7 +2594,7 @@ function ChangeOrders({cos,setCos,projs,setProjs,custs,invs,setInvs,showToast,se
 // ══════════════════════════════════════════════════════════════
 // EXPENSES
 // ══════════════════════════════════════════════════════════════
-function Expenses({expenses,setExpenses,projs,showToast}) {
+function Expenses({expenses,setExpenses,projs,showToast,db}) {
   const [form,setForm]=useState(null);
   const [catF,setCatF]=useState("All");
   const [projF,setProjF]=useState("all");
@@ -2657,11 +2619,11 @@ function Expenses({expenses,setExpenses,projs,showToast}) {
   const save=()=>{
     if(!form.description.trim()||!form.amount){showToast("Description & amount required","error");return;}
     const data={...form,amount:Number(form.amount)||0,projId:form.projId||null};
-    if(form._id){setExpenses(es=>es.map(e=>e.id===form._id?{...e,...data}:e));showToast("Updated");}
-    else{setExpenses(es=>[{...data,id:uid()},...es]);showToast("Expense added");}
+    if(form._id){var ch={...data};delete ch._id;db.expenses.update(form._id,ch);showToast("Updated");}
+    else{db.expenses.create({...data,id:uid()});showToast("Expense added");}
     setForm(null);
   };
-  const del=id=>{setExpenses(es=>es.filter(e=>e.id!==id));showToast("Removed");};
+  const del=id=>{db.expenses.remove(id);showToast("Removed");};
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -3683,7 +3645,7 @@ function EmailSendModal({type,docNumber,customer,total,dueDate,project,company,o
 // ══════════════════════════════════════════════════════════════
 // INVOICES
 // ══════════════════════════════════════════════════════════════
-function Invoices({invs,setInvs,custs,projs,ests,company,showToast}) {
+function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
   const [sel,  setSel]  = useState(invs[0]?.id||null);
   const [stF,  setStF]  = useState("all");
   const [newMd,setNewMd]= useState(null); // "estimate"|"project"|"manual"
@@ -3703,31 +3665,31 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast}) {
     };
   },[invs]);
 
-  const setStatus=(id,st)=>setInvs(is=>is.map(i=>i.id===id?{...i,status:st,paidDate:st==="paid"?tod():i.paidDate}:i));
+  const setStatus=(id,st)=>db.invs.update(id,{status:st,paidDate:st==="paid"?tod():null});
 
   const createFromEst=()=>{
     const e=ests.find(x=>x.id===srcId);if(!e)return;
     const id=nxtNum(invs,"INV");
-    setInvs(is=>[{id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,paidDate:null,taxRate:e.taxRate,notes:`From ${e.number}`,lineItems:e.lineItems.map((l,i)=>({...l,id:i+1}))},...is]);
-    setSel(id);setNewMd(null);showToast(`${id} created`);
+    db.invs.create({id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,paidDate:null,taxRate:e.taxRate,notes:"From "+e.number,lineItems:e.lineItems.map(function(l,i){return{...l,id:i+1};})});
+    setSel(id);setNewMd(null);showToast(id+" created");
   };
   const createFromProj=()=>{
     const p=projs.find(x=>x.id===srcId);if(!p)return;
     const id=nxtNum(invs,"INV");
-    setInvs(is=>[{id,number:id,custId:p.custId,projId:p.id,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:`Progress invoice — ${p.name}`,lineItems:[{id:1,description:`Labor — ${p.name}`,qty:1,unitPrice:p.actualLabor,isMaterial:false},{id:2,description:`Materials — ${p.name}`,qty:1,unitPrice:p.actualMaterials,isMaterial:true}]},...is]);
-    setSel(id);setNewMd(null);showToast(`${id} created`);
+    db.invs.create({id,number:id,custId:p.custId,projId:p.id,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"Progress invoice — "+p.name,lineItems:[{id:1,description:"Labor — "+p.name,qty:1,unitPrice:p.actualLabor,isMaterial:false},{id:2,description:"Materials — "+p.name,qty:1,unitPrice:p.actualMaterials,isMaterial:true}]});
+    setSel(id);setNewMd(null);showToast(id+" created");
   };
   const createManual=()=>{
     const id=nxtNum(invs,"INV");
-    setInvs(is=>[{id,number:id,custId:null,projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[{id:1,description:"",qty:1,unitPrice:0,isMaterial:false}]},...is]);
-    setSel(id);setNewMd(null);showToast(`${id} created`);
+    db.invs.create({id,number:id,custId:null,projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[{id:1,description:"",qty:1,unitPrice:0,isMaterial:false}]});
+    setSel(id);setNewMd(null);showToast(id+" created");
   };
   const dup=inv=>{
     const id=nxtNum(invs,"INV");
-    setInvs(is=>[{...inv,id,number:id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),paidDate:null},...is]);
-    setSel(id);showToast(`${id} created`);
+    db.invs.create({...inv,id,number:id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),paidDate:null});
+    setSel(id);showToast(id+" created");
   };
-  const del=id=>{setInvs(is=>is.filter(i=>i.id!==id));if(sel===id)setSel(null);showToast("Deleted");};
+  const del=id=>{db.invs.remove(id);if(sel===id)setSel(null);showToast("Deleted");};
 
   const exportInv=(inv,autoPrint=false)=>{
     const c=custs.find(x=>x.id===inv.custId);const calc=calcInv(inv.lineItems,inv.taxRate,inv.discount||0);
