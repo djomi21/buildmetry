@@ -708,7 +708,7 @@ export default function App() {
         setCusts(c); setEsts(e); setProjs(p); setMats(m);
         setSubs(s); setRoles(r); setHrs(h); setInvs(i);
         setCos(co); setExpenses(ex); setUsers(u);
-        console.log('COMPANY FROM API:', comp?.id, comp?.name, comp?.themeAccent);
+        console.log('COMPANY LOADED:', comp && comp.id, comp && comp.name, comp && comp.themeAccent);
         if (comp?.id) setCompany(comp);
       } catch (err) {
         console.error("Failed to load data:", err);
@@ -3017,7 +3017,7 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
   const companyJson = JSON.stringify(company);
   useEffect(()=>{
     if(!dirty){
-      console.log('SYNC FORM FROM COMPANY:', company?.name, company?.themeAccent);
+      console.log('FORM SYNCED:', company && company.name, company && company.themeAccent);
       setForm({...company});
     }
   },[companyJson]);
