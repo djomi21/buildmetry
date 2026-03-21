@@ -777,19 +777,26 @@ export default function App() {
     create: (item) => {
       console.log('DB CREATE:', item);
       rawSet(prev => [item, ...prev]);
-      var c = strip(item); if (typeof c.id === 'number') delete c.id;
-      apiRes.create(c).then(r => console.log('DB CREATE OK:', r)).catch(e => console.error('DB CREATE FAIL:', e.message));
+      var c = strip(item);
+      var localId = item.id;
+      if (typeof c.id === 'number') delete c.id;
+      apiRes.create(c).then(function(r){
+        console.log('DB CREATE OK:', r);
+        if (r && r.id && r.id !== localId) {
+          rawSet(prev => prev.map(x => x.id === localId ? {...x, id: r.id} : x));
+        }
+      }).catch(function(e){ console.error('DB CREATE FAIL:', e.message); });
     },
     update: (id, changes) => {
       console.log('DB UPDATE:', id, changes);
       rawSet(prev => prev.map(x => x.id === id ? {...x, ...changes} : x));
       var c = strip(changes); delete c.id;
-      apiRes.update(id, c).then(r => console.log('DB UPDATE OK:', r)).catch(e => console.error('DB UPDATE FAIL:', e.message));
+      apiRes.update(id, c).then(function(r){ console.log('DB UPDATE OK:', r); }).catch(function(e){ console.error('DB UPDATE FAIL:', e.message); });
     },
     remove: (id) => {
       console.log('DB REMOVE:', id);
       rawSet(prev => prev.filter(x => x.id !== id));
-      apiRes.remove(id).then(r => console.log('DB REMOVE OK:', r)).catch(e => console.error('DB REMOVE FAIL:', e.message));
+      apiRes.remove(id).then(function(r){ console.log('DB REMOVE OK:', r); }).catch(function(e){ console.error('DB REMOVE FAIL:', e.message); });
     },
   });
 

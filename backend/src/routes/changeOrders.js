@@ -4,7 +4,6 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// GET /api/changeOrders
 router.get('/', authenticate, async (req, res) => {
   try {
     const items = await prisma.changeOrder.findMany({ where: { companyId: req.companyId }, orderBy: { createdAt: 'desc' } });
@@ -12,39 +11,33 @@ router.get('/', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/changeOrders/:id
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const item = await prisma.changeOrder.findFirst({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id), companyId: req.companyId } });
+    const item = await prisma.changeOrder.findFirst({ where: { id: req.params.id, companyId: req.companyId } });
     if (!item) return res.status(404).json({ error: 'Not found' });
     res.json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/changeOrders
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { id, createdAt, updatedAt, company, customer, project, estimate, ...clean } = req.body;
+    const { createdAt, updatedAt, company, customer, project, _id, ...clean } = req.body;
     const item = await prisma.changeOrder.create({ data: { ...clean, companyId: req.companyId } });
     res.status(201).json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// PUT /api/changeOrders/:id
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const item = await prisma.changeOrder.update({
-      where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) },
-      data: (() => { const { id, createdAt, updatedAt, companyId, company, customer, project, estimate, ...clean } = req.body; return clean; })(),
-    });
+    const { id, createdAt, updatedAt, companyId, company, customer, project, _id, ...clean } = req.body;
+    const item = await prisma.changeOrder.update({ where: { id: req.params.id }, data: clean });
     res.json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// DELETE /api/changeOrders/:id
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    await prisma.changeOrder.delete({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) } });
+    await prisma.changeOrder.delete({ where: { id: req.params.id } });
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
