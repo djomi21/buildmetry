@@ -1,51 +1,48 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// GET /api/company
+// Fields that Prisma accepts for Company update
+const ALLOWED = [
+  'name','owner','phone','email','address','website','license','ein','logo',
+  'defaultTaxRate','paymentTerms','laborBurdenDefault','invoiceFooter','estimateFooter',
+  'smtpHost','smtpPort','smtpUser','smtpPass','smtpSecure',
+  'emailFromName','emailReplyTo','emailSignature',
+  'emailSubjectEstimate','emailSubjectInvoice','emailBodyEstimate','emailBodyInvoice',
+  'notifyEstimateSent','notifyEstimateApproved','notifyEstimateDeclined',
+  'notifyInvoiceSent','notifyInvoicePaid','notifyInvoiceOverdue','notifyPaymentReminder',
+  'reminderDaysBefore','overdueFollowupDays',
+  'themeAccent','themeName'
+];
+
+function pickAllowed(body) {
+  var clean = {};
+  ALLOWED.forEach(function(key) {
+    if (body[key] !== undefined) clean[key] = body[key];
+  });
+  return clean;
+}
+
+// GET /api/company — returns the company for the logged-in user
 router.get('/', authenticate, async (req, res) => {
   try {
-    const items = await prisma.company.findMany({ where: { companyId: req.companyId }, orderBy: { createdAt: 'desc' } });
-    res.json(items);
+    var company = await prisma.company.findUnique({ where: { id: req.companyId } });
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+    res.json(company);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/company/:id
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const item = await prisma.company.findFirst({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id), companyId: req.companyId } });
-    if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// POST /api/company
-router.post('/', authenticate, async (req, res) => {
-  try {
-    const { id, createdAt, updatedAt, company, customer, project, estimate, ...clean } = req.body;
-    const item = await prisma.company.create({ data: { ...clean, companyId: req.companyId } });
-    res.status(201).json(item);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// PUT /api/company/:id
+// PUT /api/company/:id — update company settings
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const item = await prisma.company.update({
-      where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) },
-      data: (() => { const { id, createdAt, updatedAt, companyId, company, customer, project, estimate, ...clean } = req.body; return clean; })(),
+    var data = pickAllowed(req.body);
+    var company = await prisma.company.update({
+      where: { id: Number(req.params.id) },
+      data: data
     });
-    res.json(item);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// DELETE /api/company/:id
-router.delete('/:id', authenticate, async (req, res) => {
-  try {
-    await prisma.company.delete({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) } });
-    res.json({ message: 'Deleted' });
+    res.json(company);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

@@ -3009,15 +3009,28 @@ function CompanySetup({company,setCompany,users,setUsers,showToast}) {
   const upd=(k,v)=>{setForm(f=>({...f,[k]:v}));setDirty(true);};
   const saveCompany=async ()=>{
     try {
-      await api.company.update(form);
+      // Only send fields the DB accepts — strip users, nested objects, etc.
+      var data = {};
+      ['name','owner','phone','email','address','website','license','ein','logo',
+       'defaultTaxRate','paymentTerms','laborBurdenDefault','invoiceFooter','estimateFooter',
+       'smtpHost','smtpPort','smtpUser','smtpPass','smtpSecure',
+       'emailFromName','emailReplyTo','emailSignature',
+       'emailSubjectEstimate','emailSubjectInvoice','emailBodyEstimate','emailBodyInvoice',
+       'notifyEstimateSent','notifyEstimateApproved','notifyEstimateDeclined',
+       'notifyInvoiceSent','notifyInvoicePaid','notifyInvoiceOverdue','notifyPaymentReminder',
+       'reminderDaysBefore','overdueFollowupDays',
+       'themeAccent','themeName'
+      ].forEach(function(k){ if(form[k]!==undefined) data[k]=form[k]; });
+      console.log('SAVE COMPANY:', data);
+      await api.company.update(data);
       setCompany({...form});
       setDirty(false);
       showToast("Company settings saved");
     } catch(err) {
-      // Fallback to local save if API unavailable
+      console.error('SAVE COMPANY FAIL:', err);
       setCompany({...form});
       setDirty(false);
-      showToast("Saved locally (API unavailable)");
+      showToast("Saved locally (API error: "+err.message+")");
     }
   };
 
