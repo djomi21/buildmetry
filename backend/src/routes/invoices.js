@@ -22,6 +22,19 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { createdAt, updatedAt, company, customer, project, estimate, _id, ...clean } = req.body;
+    // Validate foreign keys exist — set to null if not found
+    if (clean.custId) {
+      const cust = await prisma.customer.findUnique({ where: { id: Number(clean.custId) } });
+      if (!cust) clean.custId = null;
+    }
+    if (clean.projId) {
+      const proj = await prisma.project.findUnique({ where: { id: clean.projId } });
+      if (!proj) clean.projId = null;
+    }
+    if (clean.estId) {
+      const est = await prisma.estimate.findUnique({ where: { id: clean.estId } });
+      if (!est) clean.estId = null;
+    }
     const item = await prisma.invoice.create({ data: { ...clean, companyId: req.companyId } });
     res.status(201).json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }

@@ -22,6 +22,14 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { createdAt, updatedAt, company, customer, project, _id, ...clean } = req.body;
+    if (clean.custId) {
+      const cust = await prisma.customer.findUnique({ where: { id: Number(clean.custId) } });
+      if (!cust) clean.custId = null;
+    }
+    if (clean.projId) {
+      const proj = await prisma.project.findUnique({ where: { id: clean.projId } });
+      if (!proj) clean.projId = null;
+    }
     const item = await prisma.changeOrder.create({ data: { ...clean, companyId: req.companyId } });
     res.status(201).json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }

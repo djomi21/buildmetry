@@ -4,7 +4,6 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// GET /api/expenses
 router.get('/', authenticate, async (req, res) => {
   try {
     const items = await prisma.expense.findMany({ where: { companyId: req.companyId }, orderBy: { createdAt: 'desc' } });
@@ -12,39 +11,29 @@ router.get('/', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/expenses/:id
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const item = await prisma.expense.findFirst({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id), companyId: req.companyId } });
-    if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// POST /api/expenses
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { id, createdAt, updatedAt, company, customer, project, estimate, ...clean } = req.body;
+    const { id, createdAt, _id, ...clean } = req.body;
+    if (clean.projId) {
+      const proj = await prisma.project.findUnique({ where: { id: clean.projId } });
+      if (!proj) clean.projId = null;
+    }
     const item = await prisma.expense.create({ data: { ...clean, companyId: req.companyId } });
     res.status(201).json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// PUT /api/expenses/:id
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const item = await prisma.expense.update({
-      where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) },
-      data: (() => { const { id, createdAt, updatedAt, companyId, company, customer, project, estimate, ...clean } = req.body; return clean; })(),
-    });
+    const { id, createdAt, companyId, _id, ...clean } = req.body;
+    const item = await prisma.expense.update({ where: { id: Number(req.params.id) }, data: clean });
     res.json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// DELETE /api/expenses/:id
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    await prisma.expense.delete({ where: { id: isNaN(req.params.id) ? req.params.id : Number(req.params.id) } });
+    await prisma.expense.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
