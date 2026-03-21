@@ -1530,7 +1530,8 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
   const cnts={all:ests.length,draft:ests.filter(e=>e.status==="draft").length,sent:ests.filter(e=>e.status==="sent").length,approved:ests.filter(e=>e.status==="approved").length};
 
   return (
-    <div className="spl">
+    <div style={{height:"100%",display:"flex",flexDirection:"column"}}>
+    {!form?(<div className="spl" style={{flex:1}}>
       <div className="spl-l">
         <div style={{padding:"11px 12px",borderBottom:"1px solid #111826",flexShrink:0}}>
           <div style={{display:"flex",gap:7,marginBottom:8}}>
@@ -1664,22 +1665,21 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
           <button onClick={openNew} className="bb b-bl" style={{padding:"8px 16px",fontSize:12,marginTop:4}}><I n="plus" s={13}/>New Estimate</button>
         </div>
       )}
-
-      {form&&(
-        <div style={{position:"fixed",inset:0,zIndex:900,background:"#080a0f",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{padding:"14px 24px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#0a0d15"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <button onClick={()=>setForm(null)} style={{color:"#4a566e",display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:600}}><I n="arrow" s={16} /> Back</button>
-              <div style={{width:1,height:20,background:"#1e2535"}}/>
-              <div style={{fontSize:17,fontWeight:800}}>{form._id?"Edit Estimate":"New Estimate"}</div>
+    </div>):(
+        <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+          <div style={{padding:"12px 20px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#0a0d15"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <button onClick={()=>setForm(null)} style={{color:"#4a566e",display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600}}><I n="arrow" s={15}/> Back</button>
+              <div style={{width:1,height:18,background:"#1e2535"}}/>
+              <div style={{fontSize:15,fontWeight:800}}>{form._id?"Edit Estimate":"New Estimate"}</div>
             </div>
-            <div className="desk-only" style={{display:"flex",gap:8}}>
-              <button onClick={()=>setForm(null)} className="bb b-gh" style={{padding:"8px 16px",fontSize:12}}>Cancel</button>
-              <button onClick={save} className="bb b-bl" style={{padding:"8px 18px",fontSize:13}}><I n="check" s={14}/>{form._id?"Update":"Create"} Estimate</button>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setForm(null)} className="bb b-gh" style={{padding:"7px 14px",fontSize:11}}>Cancel</button>
+              <button onClick={save} className="bb b-bl" style={{padding:"7px 16px",fontSize:12}}><I n="check" s={13}/>{form._id?"Update":"Create"}</button>
             </div>
           </div>
           <div style={{flex:1,overflow:"auto"}}>
-            <div className="full-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 260px",maxWidth:1100,margin:"0 auto",minHeight:"100%"}}>
+            <div className="full-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 240px",minHeight:"100%"}}>
               <div style={{padding:"22px 28px",borderRight:"1px solid #1e2535"}}>
                 <div className="g2" style={{marginBottom:12}}>
                   <div><label className="lbl">Name *</label><input className="inp" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Kitchen Remodel Bid"/></div>
@@ -3922,14 +3922,15 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
   const cnts={all:invs.length,draft:invs.filter(i=>i.status==="draft").length,sent:invs.filter(i=>i.status==="sent").length,paid:invs.filter(i=>i.status==="paid").length,overdue:invs.filter(i=>i.status==="overdue").length};
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+    <div style={{display:"flex",flexDirection:"column",gap:12,height:"100%"}}>
+    {!editForm?(<>
       <div className="g4">
         {[{l:"Collected",v:fmt(arKpis.coll),c:"#22c55e"},{l:"Overdue",v:fmt(arKpis.ov),c:"#ef4444"},{l:"Sent / Pending",v:fmt(arKpis.sent),c:"#f5a623"},{l:"Draft",v:fmt(arKpis.draft),c:"#4a566e"}].map(k=>(
           <KpiCard key={k.l} label={k.l} val={k.v} sub="" color={k.c}/>
         ))}
       </div>
 
-      <div className="spl" style={{height:"calc(100vh - 210px)"}}>
+      <div className="spl" style={{flex:1}}>
         <div className="spl-l">
           <div style={{padding:"10px 12px",borderBottom:"1px solid #111826",flexShrink:0}}>
             <div style={{display:"flex",gap:7,marginBottom:7}}>
@@ -4099,20 +4100,18 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
         </div>
       )}
       {emailMd&&si&&<EmailSendModal type="invoice" docNumber={si.number} customer={custs.find(c=>c.id===si.custId)} total={fmt(siC.total)} dueDate={si.dueDate} project={projs.find(p=>p.id===si.projId)?.name||""} company={company} onClose={()=>setEmailMd(false)} onSend={(to)=>{if(si.status==="draft"){setStatus(si.id,"sent");}showToast("Invoice emailed to "+to);}}/>}
-
-      {/* FULL-SCREEN INVOICE EDITOR */}
-      {editForm&&(
-        <div style={{position:"fixed",inset:0,zIndex:900,background:"#080a0f",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{padding:"14px 24px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#0a0d15"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <button onClick={()=>setEditForm(null)} style={{color:"#4a566e",display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:600}}><I n="arrow" s={16}/> Back</button>
-              <div style={{width:1,height:20,background:"#1e2535"}}/>
-              <div style={{fontSize:17,fontWeight:800}}>{editForm._id?"Edit Invoice":"New Invoice"}</div>
+    </>):(
+      <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+          <div style={{padding:"12px 20px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#0a0d15"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <button onClick={()=>setEditForm(null)} style={{color:"#4a566e",display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600}}><I n="arrow" s={15}/> Back</button>
+              <div style={{width:1,height:18,background:"#1e2535"}}/>
+              <div style={{fontSize:15,fontWeight:800}}>{editForm._id?"Edit Invoice":"New Invoice"}</div>
               {editForm._id&&<span className="mn" style={{fontSize:12,color:"#4a566e"}}>{editForm.number}</span>}
             </div>
-            <div className="desk-only" style={{display:"flex",gap:8}}>
-              <button onClick={()=>setEditForm(null)} className="bb b-gh" style={{padding:"8px 16px",fontSize:12}}>Cancel</button>
-              <button onClick={saveEdit} className="bb b-bl" style={{padding:"8px 18px",fontSize:13}}><I n="check" s={14}/>{editForm._id?"Update":"Create"} Invoice</button>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setEditForm(null)} className="bb b-gh" style={{padding:"7px 14px",fontSize:11}}>Cancel</button>
+              <button onClick={saveEdit} className="bb b-bl" style={{padding:"7px 16px",fontSize:12}}><I n="check" s={13}/>{editForm._id?"Update":"Create"}</button>
             </div>
           </div>
           <div style={{flex:1,overflow:"auto"}}>
