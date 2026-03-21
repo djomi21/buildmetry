@@ -3810,9 +3810,10 @@ function EmailSendModal({type,docNumber,customer,total,dueDate,project,company,o
 function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
   const [sel,  setSel]  = useState(invs[0]?.id||null);
   const [stF,  setStF]  = useState("all");
-  const [newMd,setNewMd]= useState(null); // "estimate"|"project"|"manual"
+  const [newMd,setNewMd]= useState(null);
   const [srcId,setSrcId]= useState("");
   const [emailMd, setEmailMd] = useState(false);
+  const [editForm, setEditForm] = useState(null); // full-screen edit mode
   const si=invs.find(i=>i.id===sel)||null;
   const siC=si?calcInv(si.lineItems,si.taxRate,si.discount||0):{sub:0,lab:0,mat:0,discountPct:0,discAmt:0,discSub:0,tax:0,total:0};
 
@@ -3829,6 +3830,29 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
 
   const setStatus=(id,st)=>db.invs.update(id,{status:st,paidDate:st==="paid"?tod():null});
 
+  // Edit form helpers
+  const openEdit=(inv)=>setEditForm({...inv,_id:inv.id,custId:inv.custId||"",discount:inv.discount||0});
+  const addEditLine=()=>setEditForm(f=>({...f,lineItems:[...f.lineItems,{id:uid(),description:"",qty:1,unitPrice:0,isMaterial:false}]}));
+  const updEditLine=(lid,fld,v)=>setEditForm(f=>({...f,lineItems:f.lineItems.map(l=>l.id===lid?{...l,[fld]:fld==="qty"||fld==="unitPrice"?Number(v)||0:v}:l)}));
+  const delEditLine=(lid)=>setEditForm(f=>({...f,lineItems:f.lineItems.filter(l=>l.id!==lid)}));
+  const saveEdit=()=>{
+    if(!editForm.lineItems.length){showToast("Add at least one line item","error");return;}
+    var lines=editForm.lineItems.filter(l=>l.description.trim());
+    var c=calcInv(lines,Number(editForm.taxRate),Number(editForm.discount)||0);
+    var data={custId:Number(editForm.custId)||editForm.custId||null,projId:editForm.projId||null,issueDate:editForm.issueDate,dueDate:editForm.dueDate,discount:Number(editForm.discount)||0,taxRate:Number(editForm.taxRate),notes:editForm.notes||"",lineItems:lines};
+    if(editForm._id){
+      db.invs.update(editForm._id,data);
+      showToast("Invoice updated");
+    } else {
+      var id=nxtNum(invs,"INV");
+      db.invs.create({...data,id:id,number:id,status:"draft",paidDate:null,estId:null});
+      setSel(id);
+      showToast(id+" created");
+    }
+    setEditForm(null);
+  };
+  const editFormC=editForm?calcInv(editForm.lineItems.filter(l=>l.description.trim()),Number(editForm.taxRate),Number(editForm.discount)||0):{sub:0,lab:0,mat:0,discountPct:0,discAmt:0,discSub:0,tax:0,total:0};
+
   const createFromEst=()=>{
     const e=ests.find(x=>x.id===srcId);if(!e)return;
     const id=nxtNum(invs,"INV");
@@ -3843,8 +3867,8 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
   };
   const createManual=()=>{
     const id=nxtNum(invs,"INV");
-    db.invs.create({id,number:id,custId:null,projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[{id:1,description:"",qty:1,unitPrice:0,isMaterial:false}]});
-    setSel(id);setNewMd(null);showToast(id+" created");
+    setEditForm({_id:null,id:id,number:id,custId:"",projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[{id:uid(),description:"",qty:1,unitPrice:0,isMaterial:false}]});
+    setNewMd(null);
   };
   const dup=inv=>{
     const id=nxtNum(invs,"INV");
@@ -3947,6 +3971,7 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
                   {si.status==="sent"&&<button onClick={()=>setStatus(si.id,"overdue")} className="bb b-rd" style={{padding:"5px 9px",fontSize:11}}>Overdue</button>}
                   {si.status==="overdue"&&<button onClick={()=>setStatus(si.id,"paid")} className="bb b-gr" style={{padding:"5px 10px",fontSize:11}}><I n="check" s={11}/>Mark Paid</button>}
                   <button onClick={()=>dup(si)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}><I n="copy" s={11}/>Dup</button>
+                  <button onClick={()=>openEdit(si)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}><I n="edit" s={11}/>Edit</button>
                   <button onClick={()=>setEmailMd(true)} className="bb b-bl" style={{padding:"5px 10px",fontSize:11}}><I n="mail" s={11}/>Email</button>
                   <button onClick={()=>exportInv(si,true)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>⎙ Print</button>
                   <button onClick={()=>exportInv(si,false)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>↓ PDF</button>
@@ -4067,6 +4092,118 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
         </div>
       )}
       {emailMd&&si&&<EmailSendModal type="invoice" docNumber={si.number} customer={custs.find(c=>c.id===si.custId)} total={fmt(siC.total)} dueDate={si.dueDate} project={projs.find(p=>p.id===si.projId)?.name||""} company={company} onClose={()=>setEmailMd(false)} onSend={(to)=>{if(si.status==="draft"){setStatus(si.id,"sent");}showToast("Invoice emailed to "+to);}}/>}
+
+      {/* FULL-SCREEN INVOICE EDITOR */}
+      {editForm&&(
+        <div style={{position:"fixed",inset:0,zIndex:900,background:"#080a0f",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"14px 24px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,background:"#0a0d15"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <button onClick={()=>setEditForm(null)} style={{color:"#4a566e",display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:600}}><I n="arrow" s={16}/> Back</button>
+              <div style={{width:1,height:20,background:"#1e2535"}}/>
+              <div style={{fontSize:17,fontWeight:800}}>{editForm._id?"Edit Invoice":"New Invoice"}</div>
+              {editForm._id&&<span className="mn" style={{fontSize:12,color:"#4a566e"}}>{editForm.number}</span>}
+            </div>
+            <div className="desk-only" style={{display:"flex",gap:8}}>
+              <button onClick={()=>setEditForm(null)} className="bb b-gh" style={{padding:"8px 16px",fontSize:12}}>Cancel</button>
+              <button onClick={saveEdit} className="bb b-bl" style={{padding:"8px 18px",fontSize:13}}><I n="check" s={14}/>{editForm._id?"Update":"Create"} Invoice</button>
+            </div>
+          </div>
+          <div style={{flex:1,overflow:"auto"}}>
+            <div className="full-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 280px",maxWidth:1100,margin:"0 auto",minHeight:"100%"}}>
+              <div style={{padding:"22px 28px",borderRight:"1px solid #1e2535"}}>
+                <div className="g2" style={{marginBottom:14}}>
+                  <div><label className="lbl">Customer</label>
+                    <select className="inp" value={editForm.custId} onChange={e=>setEditForm(f=>({...f,custId:e.target.value}))}>
+                      <option value="">— Select Customer —</option>
+                      {custs.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="lbl">Project (optional)</label>
+                    <select className="inp" value={editForm.projId||""} onChange={e=>setEditForm(f=>({...f,projId:e.target.value||null}))}>
+                      <option value="">— None —</option>
+                      {projs.map(p=><option key={p.id} value={p.id}>{p.id} — {p.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="g3" style={{marginBottom:14}}>
+                  <div><label className="lbl">Issue Date</label><input className="inp" type="date" value={editForm.issueDate} onChange={e=>setEditForm(f=>({...f,issueDate:e.target.value}))}/></div>
+                  <div><label className="lbl">Due Date</label><input className="inp" type="date" value={editForm.dueDate} onChange={e=>setEditForm(f=>({...f,dueDate:e.target.value}))}/></div>
+                  <div className="g2">
+                    <div><label className="lbl">Tax %</label><input className="inp" type="number" step=".1" value={editForm.taxRate} onChange={e=>setEditForm(f=>({...f,taxRate:Number(e.target.value)||0}))}/></div>
+                    <div><label className="lbl">Disc %</label><input className="inp" type="number" step=".5" value={editForm.discount} onChange={e=>setEditForm(f=>({...f,discount:Number(e.target.value)||0}))}/></div>
+                  </div>
+                </div>
+
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <label className="lbl" style={{marginBottom:0}}>Line Items</label>
+                  <button onClick={addEditLine} className="bb b-gh" style={{padding:"4px 9px",fontSize:10,borderRadius:6}}><I n="plus" s={10}/>Add Line</button>
+                </div>
+
+                {(()=>{
+                  var labLines=editForm.lineItems.filter(l=>!l.isMaterial);
+                  var matLines=editForm.lineItems.filter(l=>l.isMaterial);
+                  var renderSec=function(title,items,color,qtyLabel,icon){
+                    if(items.length===0) return null;
+                    return <div style={{border:"1px solid #1e2535",borderRadius:9,overflow:"hidden",marginBottom:10}}>
+                      <div style={{padding:"6px 10px",background:"#0c0f17",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontWeight:700,fontSize:10,color:color,display:"flex",alignItems:"center",gap:5}}><I n={icon} s={11}/>{title}</span>
+                        <span className="mn" style={{fontSize:10,color:color}}>{fmt(items.reduce(function(s,l){return s+l.qty*l.unitPrice;},0))}</span>
+                      </div>
+                      <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <thead><tr style={{background:"#0c0f17"}}>{["Description",qtyLabel,"Rate","Total","Type",""].map(function(h){return <th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"#4a566e",textTransform:"uppercase",borderBottom:"1px solid #1e2535"}}>{h}</th>;})}</tr></thead>
+                        <tbody>
+                          {items.map(function(li,i){return (
+                            <tr key={li.id} style={{borderTop:i>0?"1px solid #111826":"none"}}>
+                              <td style={{padding:"4px 6px"}}><input className="inp" value={li.description} onChange={function(e){updEditLine(li.id,"description",e.target.value);}} placeholder="Description" style={{fontSize:11,padding:"5px 7px"}}/></td>
+                              <td style={{padding:"4px 6px"}}><input className="inp" type="number" value={li.qty} onChange={function(e){updEditLine(li.id,"qty",e.target.value);}} style={{fontSize:11,padding:"5px 5px",width:56}}/></td>
+                              <td style={{padding:"4px 6px"}}><input className="inp" type="number" step=".01" value={li.unitPrice} onChange={function(e){updEditLine(li.id,"unitPrice",e.target.value);}} style={{fontSize:11,padding:"5px 5px",width:82}}/></td>
+                              <td className="mn" style={{padding:"4px 6px",color:"#22c55e",fontSize:11,whiteSpace:"nowrap"}}>{fmtD(li.qty*li.unitPrice)}</td>
+                              <td style={{padding:"4px 6px"}}><select className="inp" value={li.isMaterial?"m":"l"} onChange={function(e){updEditLine(li.id,"isMaterial",e.target.value==="m");}} style={{fontSize:10,padding:"4px",width:62}}><option value="l">Labor</option><option value="m">Material</option></select></td>
+                              <td style={{padding:"4px 2px",width:28}}><button onClick={function(){delEditLine(li.id);}} style={{color:"#ef4444",opacity:.6,display:"flex",alignItems:"center",justifyContent:"center",padding:2}}><I n="x" s={13}/></button></td>
+                            </tr>
+                          );})}
+                        </tbody>
+                      </table>
+                    </div>;
+                  };
+                  return <>{renderSec("Labor",labLines,"#f5a623","Hrs","wrench")}{renderSec("Materials",matLines,"#6c8ebf","Qty","materials")}</>;
+                })()}
+
+                {editForm.lineItems.length===0&&<div style={{padding:20,textAlign:"center",color:"#3a4160",fontSize:12,border:"1px dashed #1e2535",borderRadius:9}}>No line items yet. Click "Add Line" above.</div>}
+
+                <div style={{marginBottom:12,marginTop:10}}><label className="lbl">Notes</label><textarea className="inp" value={editForm.notes||""} onChange={e=>setEditForm(f=>({...f,notes:e.target.value}))} rows={2} style={{resize:"vertical"}}/></div>
+
+                <div className="mob-only" style={{display:"flex",gap:9,marginBottom:16}}>
+                  <button onClick={()=>setEditForm(null)} className="bb b-gh" style={{flex:1,padding:"10px",justifyContent:"center"}}>Cancel</button>
+                  <button onClick={saveEdit} className="bb b-bl" style={{flex:2,padding:"10px",fontSize:13,justifyContent:"center"}}><I n="check" s={13}/>{editForm._id?"Update":"Create"}</button>
+                </div>
+              </div>
+
+              <div style={{padding:"18px 16px",background:"#0a0d15",overflowY:"auto",borderLeft:"1px solid #1e2535"}}>
+                <div className="stl">Preview</div>
+                <div style={{background:"#0c0f17",border:"1px solid #111826",borderRadius:9,overflow:"hidden"}}>
+                  {[
+                    {l:"Labor",v:fmt(editFormC.lab),c:"#f5a623"},
+                    {l:"Materials",v:fmt(editFormC.mat),c:"#6c8ebf",note:"taxable"},
+                    {l:"Subtotal",v:fmt(editFormC.sub),c:"#dde1ec",bold:true},
+                    ...(editFormC.discountPct>0?[{l:"Discount ("+editFormC.discountPct+"%)",v:"-"+fmt(editFormC.discAmt),c:"#a78bfa",disc:true}]:[]),
+                    ...(editFormC.discountPct>0?[{l:"After Discount",v:fmt(editFormC.discSub),c:"#dde1ec",bold:true}]:[]),
+                    {l:"Tax "+editForm.taxRate+"%",v:fmt(editFormC.tax),c:"#14b8a6"},
+                  ].map(function(r){return (
+                    <div key={r.l} style={{display:"flex",justifyContent:"space-between",padding:"8px 11px",borderBottom:"1px solid #111826",background:r.disc?"rgba(167,139,250,.04)":"transparent"}}>
+                      <div><span style={{fontSize:10,color:r.disc?"#a78bfa":r.bold?"#dde1ec":"#7a8299",fontWeight:r.bold||r.disc?700:400}}>{r.l}</span>{r.note&&<span style={{fontSize:8,color:"#3a4160",marginLeft:4}}>({r.note})</span>}</div>
+                      <span className="mn" style={{fontSize:10,color:r.c}}>{r.v}</span>
+                    </div>
+                  );})}
+                  <div style={{padding:"10px 11px",background:"rgba(34,197,94,.05)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:800,fontSize:12}}>TOTAL</span><span className="mn" style={{fontSize:17,color:"#22c55e"}}>{fmt(editFormC.total)}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
