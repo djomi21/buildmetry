@@ -1742,9 +1742,8 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                   </div>
                 )}
                 {(()=>{
-                  const labLines=form.lineItems.filter(l=>l.sourceType==="labor"||(!l.isMaterial&&l.sourceType!=="material"));
-                  const matLines=form.lineItems.filter(l=>l.sourceType==="material"||l.isMaterial);
-                  const custLines=form.lineItems.filter(l=>l.sourceType==="custom"&&!l.isMaterial);
+                  const labLines=form.lineItems.filter(l=>!l.isMaterial);
+                  const matLines=form.lineItems.filter(l=>l.isMaterial);
                   const renderEditSection=(title,items,color,qtyLabel,icon)=>(
                     items.length>0&&<div style={{border:"1px solid #1e2535",borderRadius:9,overflow:"hidden",marginBottom:10}}>
                       <div style={{padding:"6px 10px",background:"#0c0f17",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1760,40 +1759,14 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                               <td style={{padding:"4px 6px"}}><input className="inp" type="number" value={li.qty} onChange={e=>updLine(li.id,"qty",e.target.value)} style={{fontSize:11,padding:"5px 5px",width:56}} placeholder={qtyLabel==="Hours"?"hrs":"qty"}/></td>
                               <td style={{padding:"4px 6px"}}><input className="inp" type="number" step=".01" value={li.unitPrice} onChange={e=>updLine(li.id,"unitPrice",e.target.value)} style={{fontSize:11,padding:"5px 5px",width:82}}/></td>
                               <td className="mn" style={{padding:"4px 6px",color:"#22c55e",fontSize:11,whiteSpace:"nowrap"}}>{fmtD(li.qty*li.unitPrice)}</td>
-                              <td style={{padding:"4px 6px"}}><button onClick={()=>delLine(li.id)} style={{color:"#ef4444",opacity:.6}}><I n="x" s={12}/></button></td>
+                              <td style={{padding:"4px 2px",width:28}}><button onClick={()=>delLine(li.id)} style={{color:"#ef4444",opacity:.6,display:"flex",alignItems:"center",justifyContent:"center",padding:2}}><I n="x" s={13}/></button></td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   );
-                  return <>{renderEditSection("Labor",labLines.concat(custLines.filter(l=>!l.isMaterial&&l.sourceType==="custom"&&labLines.includes(l)?false:true).length===0?[]:[] ),"#f5a623","Hours","wrench")}{renderEditSection("Materials",matLines,"#6c8ebf","Qty","materials")}</>;
-                })()}
-                {(()=>{
-                  // Render any items that don't fit neatly (custom lines)
-                  const labIds=new Set(form.lineItems.filter(l=>l.sourceType==="labor").map(l=>l.id));
-                  const matIds=new Set(form.lineItems.filter(l=>l.sourceType==="material"||l.isMaterial).map(l=>l.id));
-                  const otherLines=form.lineItems.filter(l=>!labIds.has(l.id)&&!matIds.has(l.id));
-                  return otherLines.length>0&&<div style={{border:"1px solid #1e2535",borderRadius:9,overflow:"hidden",marginBottom:10}}>
-                    <div style={{padding:"6px 10px",background:"#0c0f17",borderBottom:"1px solid #1e2535"}}>
-                      <span style={{fontWeight:700,fontSize:10,color:"#7a8299",display:"flex",alignItems:"center",gap:5}}><I n="plus" s={11}/>Custom Items</span>
-                    </div>
-                    <table style={{width:"100%",borderCollapse:"collapse"}}>
-                      <thead><tr style={{background:"#0c0f17"}}>{["Description","Type","Qty","Price","Total",""].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"#4a566e",textTransform:"uppercase",borderBottom:"1px solid #1e2535"}}>{h}</th>)}</tr></thead>
-                      <tbody>
-                        {otherLines.map((li,i)=>(
-                          <tr key={li.id} style={{borderTop:i>0?"1px solid #111826":"none"}}>
-                            <td style={{padding:"4px 6px"}}><input className="inp" value={li.description} onChange={e=>updLine(li.id,"description",e.target.value)} placeholder="Description" style={{fontSize:11,padding:"5px 7px"}}/></td>
-                            <td style={{padding:"4px 6px"}}><select className="inp" value={li.isMaterial?"m":"l"} onChange={e=>updLine(li.id,"isMaterial",e.target.value==="m")} style={{fontSize:10,padding:"5px 5px",width:68}}><option value="l">Labor</option><option value="m">Material</option></select></td>
-                            <td style={{padding:"4px 6px"}}><input className="inp" type="number" value={li.qty} onChange={e=>updLine(li.id,"qty",e.target.value)} style={{fontSize:11,padding:"5px 5px",width:52}}/></td>
-                            <td style={{padding:"4px 6px"}}><input className="inp" type="number" step=".01" value={li.unitPrice} onChange={e=>updLine(li.id,"unitPrice",e.target.value)} style={{fontSize:11,padding:"5px 5px",width:82}}/></td>
-                            <td className="mn" style={{padding:"4px 6px",color:"#22c55e",fontSize:11,whiteSpace:"nowrap"}}>{fmtD(li.qty*li.unitPrice)}</td>
-                            <td style={{padding:"4px 6px"}}><button onClick={()=>delLine(li.id)} style={{color:"#ef4444",opacity:.6}}><I n="x" s={12}/></button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>;
+                  return <>{renderEditSection("Labor",labLines,"#f5a623","Hours","wrench")}{renderEditSection("Materials",matLines,"#6c8ebf","Qty","materials")}</>;
                 })()}
                 <div style={{marginBottom:12}}><label className="lbl">Notes</label><textarea className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows={2} style={{resize:"vertical"}}/></div>
                 <div style={{display:"flex",gap:9}}>
