@@ -24,7 +24,7 @@ async function main() {
   });
   console.log('  + Company: ' + company.name);
 
-  // ── Admin user ─────────────────────────────────────
+ // ── Admin user ─────────────────────────────────────
   var passwordHash = await bcrypt.hash('contractor123', 12);
   var existing = await prisma.user.findUnique({ where: { email: 'jason@jbconstruction.com' } });
   if (!existing) {
