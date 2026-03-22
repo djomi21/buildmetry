@@ -1426,7 +1426,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
   const [emailMd, setEmailMd] = useState(false);
 
   const blankLine=()=>({id:uid(),description:"",qty:1,unitPrice:0,isMaterial:false,sourceType:"custom",sourceId:null});
-  const blank={custId:"",name:"",date:tod(),expiry:addD(tod(),30),taxRate:FL_TAX,discount:0,notes:"",status:"draft",lineItems:[blankLine()]};
+  const blank={custId:"",name:"",date:tod(),expiry:addD(tod(),30),taxRate:FL_TAX,discount:0,notes:"",status:"draft",lineItems:[]};
 
   const filt=useMemo(()=>ests.filter(e=>{
     const ms=!srch||e.name.toLowerCase().includes(srch.toLowerCase())||(e.number||"").toLowerCase().includes(srch.toLowerCase())||custs.find(c=>c.id===e.custId)?.name.toLowerCase().includes(srch.toLowerCase());
