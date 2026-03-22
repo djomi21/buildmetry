@@ -1613,7 +1613,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                 {se.status==="sent"&&<button onClick={()=>markSt(se.id,"approved")} className="bb b-gr" style={{padding:"5px 10px",fontSize:11}}><I n="check" s={11}/>Approve</button>}
                 {se.status==="sent"&&<button onClick={()=>markSt(se.id,"declined")} className="bb b-rd" style={{padding:"5px 9px",fontSize:11}}>Decline</button>}
                 {se.status==="approved"&&se.projId&&<button onClick={()=>setTab("projects")} className="bb b-bl" style={{padding:"5px 10px",fontSize:11}}><I n="projects" s={11}/>View Project</button>}
-                {se.status==="approved"&&<button onClick={()=>toInvoice(se)} className="bb b-gr" style={{padding:"5px 10px",fontSize:11}}><I n="convert" s={11}/>→ Invoice</button>}
+                {se.status==="approved"&&<button onClick={()=>markSt(se.id,"sent")} className="bb b-am" style={{padding:"5px 10px",fontSize:11}}><I n="send" s={11}/>Resend</button>}
                 <button onClick={()=>openEdit(se)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}><I n="edit" s={11}/></button>
                 <button onClick={()=>setEmailMd(true)} className="bb b-bl" style={{padding:"5px 10px",fontSize:11}}><I n="mail" s={11}/>Email</button>
                 <button onClick={()=>exportEst(se,true)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>⎙ Print</button>
@@ -2721,9 +2721,25 @@ function ChangeOrders({cos,setCos,projs,setProjs,custs,invs,setInvs,showToast,se
   };
 
   const approve=co=>{
+    // 1. Update CO status
     db.cos.update(co.id,{status:"approved",approvedBy:"Owner",approvedDate:tod()});
-    db.projs.update(co.projId,{contractValue:projs.find(p=>p.id===co.projId).contractValue+co.totalAmt,budgetLabor:projs.find(p=>p.id===co.projId).budgetLabor+co.laborAmt,budgetMaterials:projs.find(p=>p.id===co.projId).budgetMaterials+co.materialAmt});
-    showToast("Approved — project updated");
+    // 2. Update project budget
+    var proj=projs.find(p=>p.id===co.projId);
+    if(proj){
+      db.projs.update(co.projId,{contractValue:proj.contractValue+co.totalAmt,budgetLabor:proj.budgetLabor+co.laborAmt,budgetMaterials:proj.budgetMaterials+co.materialAmt});
+    }
+    // 3. Create invoice for the change order cost
+    var invId=nxtNum(invs,"INV");
+    var cust=proj?custs.find(c=>c.id===proj.custId):null;
+    var lineItems=[];
+    if(co.laborAmt>0) lineItems.push({id:1,description:"Change Order "+co.number+" — Labor: "+co.description,qty:1,unitPrice:co.laborAmt,isMaterial:false});
+    if(co.materialAmt>0) lineItems.push({id:2,description:"Change Order "+co.number+" — Materials: "+co.description,qty:1,unitPrice:co.materialAmt,isMaterial:true});
+    if(lineItems.length>0){
+      db.invs.create({id:invId,number:invId,custId:cust?cust.id:null,projId:co.projId,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,depositType:"none",depositValue:0,paidDate:null,taxRate:FL_TAX,notes:"Auto-generated from Change Order "+co.number,lineItems:lineItems});
+      showToast("Approved — project updated & "+invId+" created");
+    } else {
+      showToast("Approved — project updated");
+    }
   };
   const decline=id=>{db.cos.update(id,{status:"declined"});showToast("Declined");};
   const del=id=>{db.cos.remove(id);showToast("Removed");};
@@ -4204,7 +4220,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
               <button onClick={()=>setNewMd(null)} style={{color:"#4a566e"}}><I n="x"/></button>
             </div>
             <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:10}}>
-              {[{id:"estimate",label:"From Estimate",sub:"Copy line items from an approved estimate",icon:"estimates",c:"#a78bfa"},{id:"project",label:"From Project",sub:"Auto-populate labor & materials from a project",icon:"projects",c:"#3b82f6"},{id:"manual",label:"Manual",sub:"Start with a blank invoice",icon:"plus",c:"#22c55e"}].map(opt=>(
+              {[{id:"project",label:"From Project",sub:"Auto-populate labor & materials from a project",icon:"projects",c:"#3b82f6"},{id:"manual",label:"Manual",sub:"Start with a blank invoice",icon:"plus",c:"#22c55e"}].map(opt=>(
                 <button key={opt.id} onClick={()=>opt.id==="manual"?createManual():setNewMd(opt.id)} style={{display:"flex",gap:12,alignItems:"center",background:"#0c0f17",border:"1px solid #111826",borderRadius:11,padding:"13px 15px",textAlign:"left",transition:"all .15s",cursor:"pointer"}}>
                   <div style={{width:38,height:38,borderRadius:10,background:`${opt.c}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:opt.c}}><I n={opt.icon} s={17}/></div>
                   <div><div style={{fontWeight:700,fontSize:13,color:"#e2e8f0"}}>{opt.label}</div><div style={{fontSize:11,color:"#4a566e",marginTop:2}}>{opt.sub}</div></div>
@@ -4215,23 +4231,21 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
         </div>
       )}
 
-      {(newMd==="estimate"||newMd==="project")&&(
+      {newMd==="project"&&(
         <div className="ov" onClick={e=>e.target===e.currentTarget&&setNewMd(null)}>
           <div className="mo" style={{maxWidth:420,marginTop:120}}>
             <div style={{padding:"17px 24px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:16,fontWeight:800}}>Select {newMd==="estimate"?"Estimate":"Project"}</div>
+              <div style={{fontSize:16,fontWeight:800}}>Select Project</div>
               <button onClick={()=>setNewMd(null)} style={{color:"#4a566e"}}><I n="x"/></button>
             </div>
             <div style={{padding:"18px 24px",display:"flex",flexDirection:"column",gap:12}}>
               <select className="inp" value={srcId} onChange={e=>setSrcId(e.target.value)}>
                 <option value="">— Select —</option>
-                {newMd==="estimate"
-                  ?ests.filter(e=>e.status==="approved").map(e=><option key={e.id} value={e.id}>{e.number} — {e.name}</option>)
-                  :projs.map(p=><option key={p.id} value={p.id}>{p.id} — {p.name}</option>)}
+                {projs.map(p=><option key={p.id} value={p.id}>{p.id} — {p.name}</option>)}
               </select>
               <div style={{display:"flex",gap:9}}>
                 <button onClick={()=>setNewMd(null)} className="bb b-gh" style={{flex:1,padding:"10px",justifyContent:"center"}}>Cancel</button>
-                <button onClick={newMd==="estimate"?createFromEst:createFromProj} className="bb b-bl" style={{flex:2,padding:"10px",fontSize:13,justifyContent:"center"}}><I n="plus" s={13}/>Create Invoice</button>
+                <button onClick={createFromProj} className="bb b-bl" style={{flex:2,padding:"10px",fontSize:13,justifyContent:"center"}}><I n="plus" s={13}/>Create Invoice</button>
               </div>
             </div>
           </div>
