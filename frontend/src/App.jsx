@@ -171,7 +171,7 @@ const SD_EXPENSES=[
   {id:8,projId:null,date:"2026-02-28",category:"Office",vendor:"QuickBooks",description:"Monthly subscription",amount:85,receipt:false,reimbursable:false,notes:""},
 ];
 
-const EXPENSE_CATS=["Materials","Labor","Permits","Equipment Rental","Insurance","Vehicle","Fuel","Office","Tools","Subcontractor","Disposal","Meals","Travel","Marketing","Miscellaneous"];
+const EXPENSE_CATS=["Materials","Labor","Permits","Equipment Rental","Insurance","Vehicle","Fuel","Office","Tools","Subcontractor/Crew","Disposal","Meals","Travel","Marketing","Miscellaneous"];
 
 const SD_COMPANY={
   name:"JB Construction LLC",
@@ -222,7 +222,7 @@ const USER_ROLE_PERMS={
   "Admin":["All Access","Manage Users","Company Settings","Financial Reports"],
   "Project Manager":["Projects","Estimates","Invoices","Customers","Job Costing","Materials"],
   "Estimator":["Estimates","Customers","Materials","Projects (View)"],
-  "Foreman":["Projects (View)","Time Tracking","Materials (View)","Subcontractors (View)"],
+  "Foreman":["Projects (View)","Time Tracking","Materials (View)","Crew (View)"],
   "Bookkeeper":["Invoices","Financial Reports","Customers","Job Costing","Expenses"],
   "Field Tech":["Time Tracking","Projects (View)","Materials (View)"],
   "Read Only":["Dashboard (View)","Projects (View)","Reports (View)"],
@@ -584,7 +584,7 @@ function LoginPage({users, setUsers, onLogin}) {
           <div style={{fontSize:14,color:"#4a566e",lineHeight:1.7,marginBottom:36}}>Estimates, projects, invoices, job costing, materials, subs — everything a GC needs to stay profitable and organized.</div>
 
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {["Estimates","Job Costing","Invoicing","Change Orders","Subcontractors","Reports"].map(f=>(
+            {["Estimates","Job Costing","Invoicing","Change Orders","Crew Management","Reports"].map(f=>(
               <span key={f} style={{fontSize:10,fontWeight:600,padding:"5px 12px",borderRadius:20,background:"rgba(var(--accent-r),var(--accent-g),var(--accent-b),.08)",border:"1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),.15)",color:"var(--accent-light)"}}>{f}</span>
             ))}
           </div>
@@ -888,7 +888,7 @@ export default function App() {
     {id:"cos",      label:"Change Orders",icon:"changeorder"},
     {id:"expenses", label:"Expenses",   icon:"expense"},
     {id:"materials",label:"Materials",  icon:"materials"},
-    {id:"subs",     label:"Subcontractors",icon:"employees"},
+    {id:"subs",     label:"Crew",icon:"employees"},
     {id:"invoices", label:"Invoices",   icon:"invoices"},
     {id:"reports",  label:"Reports",    icon:"reports"},
     {id:"company",  label:"Company Setup",icon:"settings"},
@@ -2083,7 +2083,7 @@ function JobCosting({projs,custs,hrs,subs,roles}) {
             <div style={{padding:"11px 16px",borderBottom:"1px solid #111826",fontWeight:800,fontSize:12}}>Labor Detail — {sp.name.split(" ").slice(0,3).join(" ")}</div>
             {pSubHrs.length===0?<ES icon="employees" text="No hours logged for this project."/>:<>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                <thead><tr style={{background:"#0a0d15"}}>{["Subcontractor","Role","Hours","Billed","True Cost","Margin"].map(h=><th key={h} style={{padding:"7px 13px",textAlign:"left",fontSize:9,fontWeight:700,color:"#4a566e",textTransform:"uppercase",letterSpacing:.3,borderBottom:"1px solid #111826"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#0a0d15"}}>{["Crew Member","Role","Hours","Billed","True Cost","Margin"].map(h=><th key={h} style={{padding:"7px 13px",textAlign:"left",fontSize:9,fontWeight:700,color:"#4a566e",textTransform:"uppercase",letterSpacing:.3,borderBottom:"1px solid #111826"}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {pSubHrs.map((h,i)=>{
                     const m=h.billed>0?pct(h.billed-h.trueCost,h.billed):0;
@@ -2287,7 +2287,7 @@ function Materials({mats,setMats,showToast,db}) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SUBCONTRACTORS
+// CREW / EMPLOYEES
 // ══════════════════════════════════════════════════════════════
 function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
   const [sel,setSel]=useState(subs[0]?.id||null);
@@ -2300,7 +2300,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
   const totCost=eHrs.reduce((s,h)=>s+h.hours*getBurdenedRate(roles,se.role,se.hourlyWage),0);
   const laborMargin=totBilled>0?pct(totBilled-totCost,totBilled):0;
 
-  const blank={name:"",company:"",role:"Carpenter",hourlyWage:"",billableRate:"",status:"active",phone:"",email:""};
+  const blank={name:"",company:"",role:"Carpenter",hourlyWage:"",billableRate:"",status:"active",phone:"",email:"",employeeType:"1099",hireDate:tod(),emergencyContact:"",certifications:""};
   const openNew=()=>setForm({...blank,_id:null});
   const openEdit=e=>setForm({...e,_id:e.id,hourlyWage:String(e.hourlyWage),billableRate:String(e.billableRate)});
   const save=()=>{
@@ -2311,7 +2311,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
     else{db.subs.create({...data,id:uid()});showToast("Added");}
     setForm(null);
   };
-  const del=id=>{db.subs.remove(id);if(sel===id)setSel(null);showToast("Subcontractor removed");};
+  const del=id=>{db.subs.remove(id);if(sel===id)setSel(null);showToast("Crew member removed");};
 
   const blankHr={projId:projs[0]?.id||"",date:tod(),hours:"8",desc:"",approved:false};
   const logHrs=()=>{
@@ -2333,7 +2333,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
     <div className="spl">
       <div className="spl-l">
         <div style={{padding:"10px 12px",borderBottom:"1px solid #111826",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-          <div style={{fontSize:10,color:"#4a566e",fontWeight:700}}>{subs.length} SUBCONTRACTORS</div>
+          <div style={{fontSize:10,color:"#4a566e",fontWeight:700}}>{subs.length} CREW MEMBERS</div>
           <button onClick={openNew} className="bb b-bl" style={{padding:"7px 11px",fontSize:11}}><I n="plus" s={11}/>Add</button>
         </div>
         <div style={{flex:1,overflowY:"auto"}}>
@@ -2348,9 +2348,10 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:12,color:is?"#e2e8f0":"#c8d0e0"}}>{e.name}</div>
                   <div style={{fontSize:9,color:"#3a4160",marginTop:1}}>{e.company||"Independent"}</div>
-                  <div style={{display:"flex",gap:6,marginTop:2,alignItems:"center"}}>
+                  <div style={{display:"flex",gap:5,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:6,background:e.employeeType==="W2"?"rgba(34,197,94,.1)":e.employeeType==="sub_company"?"rgba(167,139,250,.1)":"rgba(59,130,246,.1)",color:e.employeeType==="W2"?"#22c55e":e.employeeType==="sub_company"?"#a78bfa":"#3b82f6"}}>{e.employeeType==="W2"?"W-2":e.employeeType==="sub_company"?"Sub":"1099"}</span>
                     <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8,background:`${tc}18`,color:tc}}>{e.role}</span>
-                    <span style={{fontSize:9,color:"#3a4160"}}>{totH}h logged</span>
+                    <span style={{fontSize:9,color:"#3a4160"}}>{totH}h</span>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
                     <span className="mn" style={{fontSize:10,color:"#4a566e"}}>Wage ${e.hourlyWage}/hr</span>
@@ -2372,9 +2373,10 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
                 <div>
                   <div style={{fontWeight:800,fontSize:18,letterSpacing:-.3}}>{se.name}</div>
                   {se.company&&<div style={{fontSize:11,color:"#7a8299",marginTop:1}}>{se.company}</div>}
-                  <div style={{display:"flex",gap:6,marginTop:3,alignItems:"center"}}>
+                  <div style={{display:"flex",gap:6,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,background:se.employeeType==="W2"?"rgba(34,197,94,.1)":se.employeeType==="sub_company"?"rgba(167,139,250,.1)":"rgba(59,130,246,.1)",color:se.employeeType==="W2"?"#22c55e":se.employeeType==="sub_company"?"#a78bfa":"#3b82f6"}}>{se.employeeType==="W2"?"W-2":se.employeeType==="sub_company"?"Sub Co":"1099"}</span>
                     <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:8,background:`${ROLE_C[se.role]||"#4a566e"}18`,color:ROLE_C[se.role]||"#7a8299"}}>{se.role}</span>
-                    <span style={{fontSize:10,color:"#4a566e"}}>{se.phone}</span>
+                    <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:8,background:se.status==="active"?"rgba(34,197,94,.1)":se.status==="terminated"?"rgba(239,68,68,.1)":"rgba(245,166,35,.1)",color:se.status==="active"?"#22c55e":se.status==="terminated"?"#ef4444":"#f5a623"}}>{se.status}</span>
                   </div>
                 </div>
               </div>
@@ -2384,6 +2386,15 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
                 <button onClick={()=>{if(confirm("Delete "+se.name+"?"))del(se.id);}} className="bb b-rd" style={{padding:"6px 10px",fontSize:11}}><I n="trash" s={11}/></button>
               </div>
             </div>
+            {(se.phone||se.email||se.hireDate||se.certifications||se.emergencyContact)&&(
+              <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:10,fontSize:10,color:"#4a566e"}}>
+                {se.phone&&<span><I n="phone" s={10}/> {se.phone}</span>}
+                {se.email&&<span><I n="mail" s={10}/> {se.email}</span>}
+                {se.hireDate&&<span>Hired: {se.hireDate}</span>}
+                {se.emergencyContact&&<span>Emergency: {se.emergencyContact}</span>}
+              </div>
+            )}
+            {se.certifications&&<div style={{marginBottom:10,display:"flex",gap:5,flexWrap:"wrap"}}>{se.certifications.split(",").map(function(c,i){return <span key={i} style={{fontSize:8,fontWeight:700,padding:"2px 7px",borderRadius:6,background:"rgba(20,184,166,.08)",color:"#14b8a6",border:"1px solid rgba(20,184,166,.15)"}}>{c.trim()}</span>;})}</div>}
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {[{l:"Wage",v:`$${se.hourlyWage}/hr`,c:"#f5a623"},{l:"Billable Rate",v:`$${se.billableRate}/hr`,c:"#3b82f6"},{l:"True Cost",v:`$${getBurdenedRate(roles,se.role,se.hourlyWage).toFixed(2)}/hr`,c:"#ef4444"},{l:"Total Hours",v:`${totHrs}h`,c:"#63b3ed"},{l:"Total Billed",v:fmt(totBilled),c:"#22c55e"},{l:"True Cost Total",v:fmt(totCost),c:"#ef4444"},{l:"Labor Margin",v:`${laborMargin}%`,c:laborMargin>=30?"#22c55e":"#f5a623"}].map(k=>(
                 <div key={k.l} style={{background:"#0c0f17",border:"1px solid #111826",borderRadius:8,padding:"6px 11px"}}>
@@ -2426,7 +2437,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,color:"#2d3a52",gap:12}}>
-          <I n="employees" s={40}/><div style={{fontSize:14,fontWeight:600}}>Select a subcontractor</div>
+          <I n="employees" s={40}/><div style={{fontSize:14,fontWeight:600}}>Select a crew member</div>
         </div>
       )}
 
@@ -2434,15 +2445,22 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
         <div className="ov" onClick={e=>e.target===e.currentTarget&&setForm(null)}>
           <div className="mo" style={{maxWidth:520,marginTop:40}}>
             <div style={{padding:"17px 24px",borderBottom:"1px solid #1e2535",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:17,fontWeight:800}}>{form._id?"Edit Subcontractor":"Add Subcontractor"}</div>
+              <div style={{fontSize:17,fontWeight:800}}>{form._id?"Edit Crew Member":"Add Crew Member"}</div>
               <button onClick={()=>setForm(null)} style={{color:"#4a566e"}}><I n="x"/></button>
             </div>
             <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:13,maxHeight:"78vh",overflowY:"auto"}}>
               <div className="g2">
-                <div><label className="lbl">Contact Name *</label><input className="inp" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="John Smith"/></div>
+                <div><label className="lbl">Full Name *</label><input className="inp" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="John Smith"/></div>
                 <div><label className="lbl">Company</label><input className="inp" value={form.company||""} onChange={e=>setForm(f=>({...f,company:e.target.value}))} placeholder="ABC Contracting LLC"/></div>
               </div>
-              <div className="g2">
+              <div className="g3">
+                <div><label className="lbl">Type</label>
+                  <select className="inp" value={form.employeeType||"1099"} onChange={e=>setForm(f=>({...f,employeeType:e.target.value}))}>
+                    <option value="W2">W-2 Employee</option>
+                    <option value="1099">1099 Contractor</option>
+                    <option value="sub_company">Sub Company</option>
+                  </select>
+                </div>
                 <div><label className="lbl">Labor Role</label>
                   <select className="inp" value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}>
                     {roles.map(r=><option key={r.id} value={r.title}>{r.title}</option>)}
@@ -2450,7 +2468,7 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
                 </div>
                 <div><label className="lbl">Status</label>
                   <select className="inp" value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
-                    <option value="active">Active</option><option value="inactive">Inactive</option>
+                    <option value="active">Active</option><option value="inactive">Inactive</option><option value="terminated">Terminated</option>
                   </select>
                 </div>
               </div>
@@ -2467,11 +2485,16 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
               </div>
               <div className="g2">
                 <div><label className="lbl">Phone</label><input className="inp" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} placeholder="(555) 000-0000"/></div>
-                <div><label className="lbl">Email</label><input className="inp" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="sub@company.com"/></div>
+                <div><label className="lbl">Email</label><input className="inp" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="john@company.com"/></div>
               </div>
+              <div className="g2">
+                <div><label className="lbl">Hire Date</label><input className="inp" type="date" value={form.hireDate||""} onChange={e=>setForm(f=>({...f,hireDate:e.target.value}))}/></div>
+                <div><label className="lbl">Emergency Contact</label><input className="inp" value={form.emergencyContact||""} onChange={e=>setForm(f=>({...f,emergencyContact:e.target.value}))} placeholder="Name — (555) 000-0000"/></div>
+              </div>
+              <div><label className="lbl">Certifications / Licenses</label><input className="inp" value={form.certifications||""} onChange={e=>setForm(f=>({...f,certifications:e.target.value}))} placeholder="OSHA 10, EPA Lead, FL Electrical License…"/></div>
               <div style={{display:"flex",gap:9,marginTop:4}}>
                 <button onClick={()=>setForm(null)} className="bb b-gh" style={{flex:1,padding:"10px",justifyContent:"center"}}>Cancel</button>
-                <button onClick={save} className="bb b-bl" style={{flex:2,padding:"10px",fontSize:13,justifyContent:"center"}}><I n="check" s={13}/>{form._id?"Update":"Add"} Subcontractor</button>
+                <button onClick={save} className="bb b-bl" style={{flex:2,padding:"10px",fontSize:13,justifyContent:"center"}}><I n="check" s={13}/>{form._id?"Update":"Add"} Crew Member</button>
               </div>
             </div>
           </div>
@@ -4427,7 +4450,7 @@ function Reports({invs,projs,custs,subs,hrs,roles,company}) {
         <table><thead><tr><th>Invoice</th><th>Customer</th><th>Issued</th><th>Due</th><th>Status</th><th style="text-align:right">Amount</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table>`;
     } else {
       const rows=subData.map(e=>`<tr><td style="font-weight:600">${e.name}</td><td>${e.role}</td><td class="mn" style="text-align:right">$${e.hourlyWage}</td><td class="mn" style="text-align:right">$${e.billableRate}</td><td class="mn" style="text-align:right">$${getBurdenedRate(roles,e.role,e.hourlyWage).toFixed(2)}</td><td class="mn" style="text-align:right">${e.totalHours}h</td><td class="mn" style="text-align:right">${fmt(e.billed)}</td><td class="mn" style="text-align:right">${fmt(e.trueCost)}</td><td class="mn" style="text-align:right;font-weight:700">${fmt(e.net)}</td><td class="mn" style="text-align:right">${e.margin}%</td></tr>`).join("");
-      body=`<div class="doc-title">Subcontractor Labor Report</div><div class="doc-meta">Generated ${tod()}</div>
+      body=`<div class="doc-title">Crew Labor Report</div><div class="doc-meta">Generated ${tod()}</div>
         <table><thead><tr><th>Sub</th><th>Role</th><th style="text-align:right">Wage</th><th style="text-align:right">Bill</th><th style="text-align:right">Burdened</th><th style="text-align:right">Hours</th><th style="text-align:right">Billed</th><th style="text-align:right">True Cost</th><th style="text-align:right">Net</th><th style="text-align:right">Margin</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     printDoc(tabs.find(t=>t.id===rtab)?.label||"Report",body,company,autoPrint);
@@ -4587,9 +4610,9 @@ function Reports({invs,projs,custs,subs,hrs,roles,company}) {
             ].map(k=><KpiCard key={k.l} label={k.l} val={k.v} sub="" color={k.c}/>)}
           </div>
           <div style={{background:"#0c0f17",border:"1px solid #111826",borderRadius:12,overflow:"hidden"}}>
-            <div style={{padding:"10px 16px",borderBottom:"1px solid #111826",fontWeight:800,fontSize:12}}>Subcontractor Labor Report</div>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid #111826",fontWeight:800,fontSize:12}}>Crew Labor Report</div>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-              <thead><tr style={{background:"#0a0d15"}}>{["Subcontractor","Role","Wage/hr","Bill/hr","True Cost/hr","Hours","Billed","True Cost","Net Profit","Margin"].map(h=><th key={h} style={{padding:"7px 12px",textAlign:"left",fontSize:9,fontWeight:700,color:"#4a566e",textTransform:"uppercase",letterSpacing:.3,borderBottom:"1px solid #111826"}}>{h}</th>)}</tr></thead>
+              <thead><tr style={{background:"#0a0d15"}}>{["Crew Member","Role","Wage/hr","Bill/hr","True Cost/hr","Hours","Billed","True Cost","Net Profit","Margin"].map(h=><th key={h} style={{padding:"7px 12px",textAlign:"left",fontSize:9,fontWeight:700,color:"#4a566e",textTransform:"uppercase",letterSpacing:.3,borderBottom:"1px solid #111826"}}>{h}</th>)}</tr></thead>
               <tbody>
                 {subData.map((e,i)=>(
                   <tr key={e.id} className="rh" style={{borderTop:"1px solid #0e1119",background:i%2===0?"transparent":"rgba(255,255,255,.012)"}}>

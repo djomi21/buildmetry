@@ -234,19 +234,23 @@ model Material {
 
 // ── SUBCONTRACTORS ───────────────────────────────────
 model Subcontractor {
-  id            Int       @id @default(autoincrement())
-  companyId     Int
-  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name          String
-  companyName   String?
-  role          String?
-  hourlyWage    Float     @default(0)
-  billableRate  Float     @default(0)
-  status        String    @default("active")
-  phone         String?
-  email         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               Int       @id @default(autoincrement())
+  companyId        Int
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name             String
+  companyName      String?
+  role             String?
+  hourlyWage       Float     @default(0)
+  billableRate     Float     @default(0)
+  status           String    @default("active")
+  phone            String?
+  email            String?
+  employeeType     String    @default("1099")
+  hireDate         String?
+  emergencyContact String?
+  certifications   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   timeEntries   TimeEntry[]
 
