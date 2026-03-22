@@ -3890,7 +3890,7 @@ function Invoices({invs,setInvs,custs,projs,ests,company,showToast,db}) {
   };
   const createManual=()=>{
     const id=nxtNum(invs,"INV");
-    setEditForm({_id:null,id:id,number:id,custId:"",projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[{id:uid(),description:"",qty:1,unitPrice:0,isMaterial:false}]});
+    setEditForm({_id:null,id:id,number:id,custId:"",projId:null,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"",lineItems:[]});
     setNewMd(null);
   };
   const dup=inv=>{
