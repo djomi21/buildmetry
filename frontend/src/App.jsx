@@ -3980,7 +3980,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
         <div class="row" style="font-weight:700"><span>After Discount</span><span class="mn">${fmt(calc.discSub)}</span></div>`:""}
         <div class="row"><span>Sales Tax (${inv.taxRate}%${calc.discountPct>0?" on disc. materials":""})</span><span class="mn">${fmt(calc.tax)}</span></div>
         <div class="row grand"><span>TOTAL DUE</span><span class="mn">${fmt(calc.total)}</span></div>
-        ${calc.depAmt>0?`<div class="row" style="border-top:1px dashed #ccc;padding-top:6px;color:#d97706"><span>Deposit Required${inv.depositType==="percent"?" ("+inv.depositValue+"%)":""}</span><span class="mn">${fmt(calc.depAmt)}</span></div>
+        ${calc.depAmt>0?`<div class="row" style="border-top:1px dashed #ccc;padding-top:6px;color:#d97706"><span>Deposit${inv.depositType==="percent"?" ("+inv.depositValue+"%)":""}</span><span class="mn">${fmt(calc.depAmt)}</span></div>
         <div class="row" style="font-weight:800;color:#2563eb;font-size:14px"><span>Balance Due</span><span class="mn" style="font-size:16px">${fmt(calc.balanceDue)}</span></div>`:""}
       </div>
       ${inv.notes?`<div class="notes" style="margin-top:16px"><strong>Notes:</strong> ${inv.notes}</div>`:""}
@@ -4115,7 +4115,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
                     </div>
                     {siC.depAmt>0&&(<>
                       <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderTop:"1px dashed #1e2535"}}>
-                        <span style={{fontSize:11,color:"#f59e0b",fontWeight:700}}>Deposit Required</span>
+                        <span style={{fontSize:11,color:"#f59e0b",fontWeight:700}}>Deposit</span>
                         <span className="mn" style={{fontSize:11,color:"#f59e0b"}}>{fmt(siC.depAmt)}</span>
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0"}}>
@@ -4354,7 +4354,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
                   </div>
                   {editFormC.depAmt>0&&(<>
                     <div style={{display:"flex",justifyContent:"space-between",padding:"8px 11px",borderTop:"1px solid #111826",background:"rgba(245,158,11,.04)"}}>
-                      <span style={{fontSize:10,color:"#f59e0b",fontWeight:700}}>Deposit Required{editForm.depositType==="percent"?(" ("+editForm.depositValue+"%)"):""}</span>
+                      <span style={{fontSize:10,color:"#f59e0b",fontWeight:700}}>Deposit{editForm.depositType==="percent"?(" ("+editForm.depositValue+"%)"):""}</span>
                       <span className="mn" style={{fontSize:12,color:"#f59e0b"}}>{fmt(editFormC.depAmt)}</span>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",padding:"8px 11px",background:"rgba(99,179,237,.04)"}}>

@@ -136,6 +136,8 @@ model Estimate {
   expiry        String
   taxRate       Float     @default(6.5)
   discount      Float     @default(0)
+  depositType   String    @default("none")
+  depositValue  Float     @default(0)
   notes         String?   @db.Text
   subtotal      Float     @default(0)
   materialSubtotal Float  @default(0)
@@ -198,6 +200,8 @@ model Invoice {
   dueDate       String
   paidDate      String?
   discount      Float     @default(0)
+  depositType   String    @default("none")
+  depositValue  Float     @default(0)
   taxRate       Float     @default(6.5)
   notes         String?   @db.Text
   lineItems     Json      @default("[]")
