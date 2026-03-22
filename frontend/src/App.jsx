@@ -359,7 +359,6 @@ ${bodyHtml}
   idoc.write(html.replace("</body>",`
     <div class="no-print" style="position:fixed;top:14px;right:14px;display:flex;gap:6px;z-index:100">
       <button onclick="window.print()" style="border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#1a1a2e;color:#fff">⎙ Print</button>
-      <button onclick="window.print()" style="border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff">↓ Save PDF</button>
       <button onclick="parent.document.getElementById('__print_frame').remove()" style="border:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#ef4444;color:#fff">✕ Close</button>
     </div>
   </body>`));
@@ -1597,7 +1596,6 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                 <button onClick={()=>openEdit(se)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}><I n="edit" s={11}/></button>
                 <button onClick={()=>setEmailMd(true)} className="bb b-bl" style={{padding:"5px 10px",fontSize:11}}><I n="mail" s={11}/>Email</button>
                 <button onClick={()=>exportEst(se,true)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>⎙ Print</button>
-                <button onClick={()=>exportEst(se,false)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>↓ PDF</button>
                 <button onClick={()=>del(se.id)} className="bb b-rd" style={{padding:"5px 8px",fontSize:11}}><I n="trash" s={11}/></button>
               </div>
             </div>
@@ -4062,7 +4060,6 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
                   <button onClick={()=>openEdit(si)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}><I n="edit" s={11}/>Edit</button>
                   <button onClick={()=>setEmailMd(true)} className="bb b-bl" style={{padding:"5px 10px",fontSize:11}}><I n="mail" s={11}/>Email</button>
                   <button onClick={()=>exportInv(si,true)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>⎙ Print</button>
-                  <button onClick={()=>exportInv(si,false)} className="bb b-gh" style={{padding:"5px 9px",fontSize:11}}>↓ PDF</button>
                   {si.status==="draft"&&<button onClick={()=>setStatus(si.id,"void")} className="bb b-rd" style={{padding:"5px 9px",fontSize:11}}>Void</button>}
                   <button onClick={()=>del(si.id)} className="bb b-rd" style={{padding:"5px 8px",fontSize:11}}><I n="trash" s={11}/></button>
                 </div>
@@ -4444,7 +4441,6 @@ function Reports({invs,projs,custs,subs,hrs,roles,company}) {
         ))}
         <div style={{marginLeft:"auto",display:"flex",gap:4,flexShrink:0}}>
           <button onClick={()=>exportReport(true)} className="bb b-gh" style={{padding:"5px 12px",fontSize:11}}>⎙ Print</button>
-          <button onClick={()=>exportReport(false)} className="bb b-gh" style={{padding:"5px 12px",fontSize:11}}>↓ PDF</button>
         </div>
       </div>
 
