@@ -1780,7 +1780,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                           });
                       })()}
                       {picker.type==="labor"&&(()=>{
-                        const fRoles=roles.filter(r=>!picker.search||r.title.toLowerCase().includes(picker.search.toLowerCase()));
+                        const fRoles=roles.filter(r=>!MGMT_ROLES.has(r.title)&&(!picker.search||r.title.toLowerCase().includes(picker.search.toLowerCase())));
                         return fRoles.length===0
                           ?<div style={{padding:"14px",textAlign:"center",color:"#3a4160",fontSize:11}}>No labor roles found</div>
                           :fRoles.map(r=>{
@@ -2560,11 +2560,12 @@ function Subs({subs,setSubs,hrs,setHrs,projs,roles,showToast,db,auth}) {
 // ══════════════════════════════════════════════════════════════
 // LABOR ROLES
 // ══════════════════════════════════════════════════════════════
-function LaborRoles({roles,setRoles,showToast,db}) {
+function LaborRoles({roles,setRoles,showToast,db,filterFn,heading}) {
   const [form,setForm]=useState(null);
   const [srch,setSrch]=useState("");
 
-  const filt=useMemo(()=>roles.filter(r=>!srch||r.title.toLowerCase().includes(srch.toLowerCase())),[roles,srch]);
+  const baseRoles=useMemo(()=>filterFn?roles.filter(filterFn):roles,[roles,filterFn]);
+  const filt=useMemo(()=>baseRoles.filter(r=>!srch||r.title.toLowerCase().includes(srch.toLowerCase())),[baseRoles,srch]);
 
   const blank={title:"",baseRate:"",payrollPct:"15.3",benefitsPct:"12.0"};
   const openNew=()=>setForm({...blank,_id:null});
@@ -2584,14 +2585,14 @@ function LaborRoles({roles,setRoles,showToast,db}) {
   };
   const del=id=>{db.roles.remove(id);showToast("Removed");};
 
-  const avgBurden=roles.length>0?Math.round(roles.reduce((s,r)=>s+(r.payrollPct+r.benefitsPct),0)/roles.length*10)/10:0;
-  const avgBase=roles.length>0?Math.round(roles.reduce((s,r)=>s+r.baseRate,0)/roles.length*100)/100:0;
-  const avgBurdened=roles.length>0?Math.round(roles.reduce((s,r)=>s+calcBurden(r).fullyBurdenedRate,0)/roles.length*100)/100:0;
+  const avgBurden=baseRoles.length>0?Math.round(baseRoles.reduce((s,r)=>s+(r.payrollPct+r.benefitsPct),0)/baseRoles.length*10)/10:0;
+  const avgBase=baseRoles.length>0?Math.round(baseRoles.reduce((s,r)=>s+r.baseRate,0)/baseRoles.length*100)/100:0;
+  const avgBurdened=baseRoles.length>0?Math.round(baseRoles.reduce((s,r)=>s+calcBurden(r).fullyBurdenedRate,0)/baseRoles.length*100)/100:0;
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div className="g4">
-        {[{l:"Total Roles",v:roles.length,c:"#63b3ed"},{l:"Avg Base Rate",v:`$${avgBase}/hr`,c:"#f5a623"},{l:"Avg Burden %",v:`${avgBurden}%`,c:"#ef4444"},{l:"Avg Burdened Rate",v:`$${avgBurdened}/hr`,c:"#22c55e"}].map(k=>(
+        {[{l:"Total Roles",v:baseRoles.length,c:"#63b3ed"},{l:"Avg Base Rate",v:`$${avgBase}/hr`,c:"#f5a623"},{l:"Avg Burden %",v:`${avgBurden}%`,c:"#ef4444"},{l:"Avg Burdened Rate",v:`$${avgBurdened}/hr`,c:"#22c55e"}].map(k=>(
           <KpiCard key={k.l} label={k.l} val={k.v} sub="" color={k.c}/>
         ))}
       </div>
@@ -3291,6 +3292,7 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
     {id:"users",label:"Users & Roles",icon:"customers"},
     {id:"roles",label:"Role Permissions",icon:"shield"},
     {id:"labor",label:"Labor Roles",icon:"wrench"},
+    {id:"admin_roles",label:"Admin Roles",icon:"building"},
     {id:"email",label:"Email & Notifications",icon:"bell"},
     {id:"theme",label:"Theme & Branding",icon:"palette"},
     {id:"company",label:"Company Info",icon:"settings"},
@@ -3470,9 +3472,14 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
         </div>
       )}
 
-      {/* ── LABOR ROLES TAB ── */}
+      {/* ── LABOR ROLES TAB (trade roles only) ── */}
       {stab==="labor"&&(
-        <LaborRoles roles={roles} setRoles={setRoles} showToast={showToast} db={db}/>
+        <LaborRoles roles={roles} setRoles={setRoles} showToast={showToast} db={db} filterFn={function(r){return !MGMT_ROLES.has(r.title);}} heading="Labor Roles"/>
+      )}
+
+      {/* ── ADMIN ROLES TAB (management roles only) ── */}
+      {stab==="admin_roles"&&(
+        <LaborRoles roles={roles} setRoles={setRoles} showToast={showToast} db={db} filterFn={function(r){return MGMT_ROLES.has(r.title);}} heading="Administrative Roles"/>
       )}
 
       {/* ── COMPANY INFO TAB ── */}
@@ -4321,7 +4328,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
                           });
                       })()}
                       {invPicker.type==="labor"&&(function(){
-                        var fRoles=(roles||[]).filter(function(r){return !invPicker.search||r.title.toLowerCase().includes(invPicker.search.toLowerCase());});
+                        var fRoles=(roles||[]).filter(function(r){return !MGMT_ROLES.has(r.title)&&(!invPicker.search||r.title.toLowerCase().includes(invPicker.search.toLowerCase()));});
                         return fRoles.length===0
                           ?<div style={{padding:"14px",textAlign:"center",color:"#3a4160",fontSize:11}}>No labor roles found</div>
                           :fRoles.map(function(r){
