@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────
-// ContractorOS Pro — API Client
+// BuildMetry v1.0 — API Client
 // Handles JWT auth, token persistence, and all CRUD ops
 // ─────────────────────────────────────────────────────
 
@@ -12,26 +12,26 @@ let _token = null;
 
 export const getToken = () => {
   if (_token) return _token;
-  try { _token = localStorage.getItem('cos_token'); } catch(e) {}
+  try { _token = localStorage.getItem('bm_token'); } catch(e) {}
   return _token;
 };
 
 export const setToken = (token) => {
   _token = token;
-  try { if (token) localStorage.setItem('cos_token', token); else localStorage.removeItem('cos_token'); } catch(e) {}
+  try { if (token) localStorage.setItem('bm_token', token); else localStorage.removeItem('bm_token'); } catch(e) {}
 };
 
 export const clearAuth = () => {
   _token = null;
-  try { localStorage.removeItem('cos_token'); localStorage.removeItem('cos_user'); } catch(e) {}
+  try { localStorage.removeItem('bm_token'); localStorage.removeItem('bm_user'); } catch(e) {}
 };
 
 export const getSavedUser = () => {
-  try { const u = localStorage.getItem('cos_user'); return u ? JSON.parse(u) : null; } catch(e) { return null; }
+  try { const u = localStorage.getItem('bm_user'); return u ? JSON.parse(u) : null; } catch(e) { return null; }
 };
 
 export const saveUser = (user) => {
-  try { if (user) localStorage.setItem('cos_user', JSON.stringify(user)); else localStorage.removeItem('cos_user'); } catch(e) {}
+  try { if (user) localStorage.setItem('bm_user', JSON.stringify(user)); else localStorage.removeItem('bm_user'); } catch(e) {}
 };
 
 // ── Core Fetch Wrapper ───────────────────────────────

@@ -82,8 +82,8 @@ router.post('/test', authenticate, async (req, res) => {
     await transporter.sendMail({
       from: '"' + (company.emailFromName || company.name) + '" <' + company.smtpUser + '>',
       to: company.smtpUser,
-      subject: 'ContractorOS - Test Email',
-      text: 'This is a test email from ContractorOS.\n\nIf you received this, your SMTP settings are configured correctly.\n\nSent: ' + new Date().toLocaleString() + '\n\n' + (company.emailSignature || ''),
+      subject: 'BuildMetry - Test Email',
+      text: 'This is a test email from BuildMetry.\n\nIf you received this, your SMTP settings are configured correctly.\n\nSent: ' + new Date().toLocaleString() + '\n\n' + (company.emailSignature || ''),
     });
 
     res.json({ message: 'Test email sent to ' + company.smtpUser });

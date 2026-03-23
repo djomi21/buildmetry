@@ -12,7 +12,7 @@ const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 10000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('');
-  console.log('  ContractorOS Pro API');
+  console.log('  BuildMetry v1.0 API');
   console.log('  Port: ' + PORT);
   console.log('  Env:  ' + (process.env.NODE_ENV || 'dev'));
   console.log('  Time: ' + new Date().toISOString());
