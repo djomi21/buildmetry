@@ -513,7 +513,8 @@ main>div table,main>div>div table,.spl-r table{min-width:600px}
 div:has(>table){overflow-x:auto;-webkit-overflow-scrolling:touch}
 @media(max-width:768px){
   main>div table,main>div>div table,.spl-r table{min-width:500px}
-  .sub-tabs{width:100%}
+  .sub-tabs{width:100%;flex-wrap:wrap;gap:4px;padding:6px}
+  .sub-tabs button{font-size:10px!important;padding:6px 10px!important;gap:4px!important}
   div:has(>table){overflow-x:auto}
 }
 @media(max-width:1024px){
@@ -538,13 +539,20 @@ div:has(>table){overflow-x:auto;-webkit-overflow-scrolling:touch}
   .jc-grid{grid-template-columns:1fr!important}
   main div:has(>table){overflow-x:auto;-webkit-overflow-scrolling:touch}
   main table{min-width:580px}
-  .act-bar{flex-wrap:wrap!important;gap:4px!important}
-  .act-bar .bb{font-size:10px!important;padding:4px 7px!important}
+  .act-bar{flex-wrap:wrap!important;gap:4px!important;justify-content:flex-start!important}
+  .act-bar .bb{font-size:10px!important;padding:5px 8px!important;flex-shrink:0}
   .kpi-row{grid-template-columns:repeat(2,1fr)!important}
+  .est-detail-header,.inv-detail-header{flex-direction:column!important;gap:10px!important;align-items:stretch!important}
+  .est-kpi-row,.inv-kpi-row{gap:6px!important}
+  .est-kpi-row>div,.inv-kpi-row>div{flex:1 1 45%!important;min-width:0!important}
 }
 @media(max-width:480px){
   .g4{grid-template-columns:1fr}
   .g6{grid-template-columns:1fr}
+  .sub-tabs button{font-size:9px!important;padding:5px 7px!important}
+  .sub-tabs button svg{display:none!important}
+  .act-bar .bb{font-size:9px!important;padding:4px 6px!important}
+  .est-kpi-row>div,.inv-kpi-row>div{flex:1 1 100%!important}
 }
 `;
 
@@ -1513,11 +1521,6 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
     db.ests.update(id,{status:st});
     showToast("Marked "+st);
   };
-  const toInvoice=e=>{
-    const id=nxtNum(invs,"INV");
-    db.invs.create({id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,depositType:e.depositType||"none",depositValue:Number(e.depositValue)||0,paidDate:null,taxRate:e.taxRate,notes:"From "+e.number,lineItems:e.lineItems.map(function(l,i){return{...l,id:i+1};})});
-    showToast(id+" created");setTab("invoices");
-  };
   const del=id=>{db.ests.remove(id);if(sel===id)setSel(null);showToast("Deleted");};
 
   const exportEst=(e,autoPrint=false)=>{
@@ -1597,9 +1600,9 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
       {se?(
         <div className="spl-r">
           <div style={{padding:"15px 20px",borderBottom:"1px solid #111826",flexShrink:0}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-              <div>
-                <div style={{display:"flex",gap:9,alignItems:"center"}}>
+            <div className="est-detail-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div style={{minWidth:0}}>
+                <div style={{display:"flex",gap:9,alignItems:"center",flexWrap:"wrap"}}>
                   <span className="mn" style={{fontSize:17,color:"#e2e8f0"}}>{se.number}</span>
                   <Chip s={se.status} map={EST_SC}/>
                 </div>
@@ -1620,7 +1623,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
                 <button onClick={()=>del(se.id)} className="bb b-rd" style={{padding:"5px 8px",fontSize:11}}><I n="trash" s={11}/></button>
               </div>
             </div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <div className="est-kpi-row" style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {[{l:"Labor",v:fmt(seC.lab),c:"#f5a623"},{l:"Materials",v:fmt(seC.mat),c:"#6c8ebf"},{l:"Subtotal",v:fmt(seC.sub),c:"#dde1ec"},{l:`Tax ${se.taxRate}%`,v:fmt(seC.tax),c:"#14b8a6"},{l:"TOTAL",v:fmt(seC.total),c:"#22c55e",big:true},...(seC.depAmt>0?[{l:"Deposit",v:fmt(seC.depAmt),c:"#f59e0b"},{l:"Balance Due",v:fmt(seC.balanceDue),c:"#63b3ed",big:true}]:[])].map(k=>(
                 <div key={k.l} style={{background:"#0c0f17",border:`1px solid ${k.big?"rgba(34,197,94,.3)":"#111826"}`,borderRadius:8,padding:"6px 11px"}}>
                   <div style={{fontSize:8,color:"#3a4160",fontWeight:700,textTransform:"uppercase",letterSpacing:.4}}>{k.l}</div>
@@ -3960,7 +3963,7 @@ function EmailSendModal({type,docNumber,customer,total,dueDate,project,company,o
 // ══════════════════════════════════════════════════════════════
 // INVOICES
 // ══════════════════════════════════════════════════════════════
-function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db}) {
+function Invoices({invs,setInvs,custs,projs,ests,cos,mats,roles,company,showToast,db}) {
   const [sel,  setSel]  = useState(invs[0]?.id||null);
   const [stF,  setStF]  = useState("all");
   const [newMd,setNewMd]= useState(null);
@@ -4019,16 +4022,33 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
   };
   const editFormC=editForm?calcInv(editForm.lineItems.filter(l=>l.description.trim()),Number(editForm.taxRate),Number(editForm.discount)||0,editForm.depositType||"none",Number(editForm.depositValue)||0):{sub:0,lab:0,mat:0,discountPct:0,discAmt:0,discSub:0,tax:0,total:0,depAmt:0,balanceDue:0};
 
-  const createFromEst=()=>{
-    const e=ests.find(x=>x.id===srcId);if(!e)return;
-    const id=nxtNum(invs,"INV");
-    db.invs.create({id,number:id,custId:e.custId,projId:e.projId||null,estId:e.id,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:e.discount||0,depositType:e.depositType||"none",depositValue:Number(e.depositValue)||0,paidDate:null,taxRate:e.taxRate,notes:"From "+e.number,lineItems:e.lineItems.map(function(l,i){return{...l,id:i+1};})});
-    setSel(id);setNewMd(null);showToast(id+" created");
-  };
   const createFromProj=()=>{
     const p=projs.find(x=>x.id===srcId);if(!p)return;
     const id=nxtNum(invs,"INV");
-    db.invs.create({id,number:id,custId:p.custId,projId:p.id,estId:null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:0,paidDate:null,taxRate:FL_TAX,notes:"Progress invoice — "+p.name,lineItems:[{id:1,description:"Labor — "+p.name,qty:1,unitPrice:p.actualLabor,isMaterial:false},{id:2,description:"Materials — "+p.name,qty:1,unitPrice:p.actualMaterials,isMaterial:true}]});
+    var lineItems=[];var lineId=1;
+    // Pull estimate line items
+    var est=(ests||[]).find(function(e){return e.id===p.estId;});
+    if(est&&est.lineItems){
+      est.lineItems.forEach(function(li){
+        lineItems.push({id:lineId++,description:li.description,qty:li.qty,unitPrice:li.unitPrice,isMaterial:li.isMaterial,section:"estimate"});
+      });
+    }
+    // Pull approved change orders
+    var projCOs=(cos||[]).filter(function(c){return c.projId===p.id&&c.status==="approved";});
+    projCOs.forEach(function(co){
+      if(co.laborAmt>0) lineItems.push({id:lineId++,description:"CO "+co.number+" — "+co.description+" (Labor)",qty:1,unitPrice:co.laborAmt,isMaterial:false,section:"changeorder",coNumber:co.number});
+      if(co.materialAmt>0) lineItems.push({id:lineId++,description:"CO "+co.number+" — "+co.description+" (Materials)",qty:1,unitPrice:co.materialAmt,isMaterial:true,section:"changeorder",coNumber:co.number});
+    });
+    // If no estimate found, fall back to project budget summary
+    if(lineItems.length===0){
+      if(p.actualLabor>0||p.budgetLabor>0) lineItems.push({id:lineId++,description:"Labor — "+p.name,qty:1,unitPrice:p.actualLabor||p.budgetLabor,isMaterial:false,section:"estimate"});
+      if(p.actualMaterials>0||p.budgetMaterials>0) lineItems.push({id:lineId++,description:"Materials — "+p.name,qty:1,unitPrice:p.actualMaterials||p.budgetMaterials,isMaterial:true,section:"estimate"});
+    }
+    var taxRate=est?est.taxRate:FL_TAX;
+    var discount=est?(est.discount||0):0;
+    var depositType=est?(est.depositType||"none"):"none";
+    var depositValue=est?(Number(est.depositValue)||0):0;
+    db.invs.create({id,number:id,custId:p.custId,projId:p.id,estId:p.estId||null,status:"draft",issueDate:tod(),dueDate:addD(tod(),30),discount:discount,depositType:depositType,depositValue:depositValue,paidDate:null,taxRate:taxRate,notes:"Invoice from project — "+p.name+(projCOs.length>0?" (includes "+projCOs.length+" CO"+(projCOs.length>1?"s":"")+")" :""),lineItems:lineItems});
     setSel(id);setNewMd(null);showToast(id+" created");
   };
   const createManual=()=>{
@@ -4129,9 +4149,9 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
         {si?(
           <div className="spl-r">
             <div style={{padding:"14px 20px",borderBottom:"1px solid #111826",flexShrink:0}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:9}}>
-                <div>
-                  <div style={{display:"flex",gap:9,alignItems:"center"}}><span className="mn" style={{fontSize:16,color:"#e2e8f0"}}>{si.number}</span><Chip s={si.status} map={INV_SC}/></div>
+              <div className="inv-detail-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:9}}>
+                <div style={{minWidth:0}}>
+                  <div style={{display:"flex",gap:9,alignItems:"center",flexWrap:"wrap"}}><span className="mn" style={{fontSize:16,color:"#e2e8f0"}}>{si.number}</span><Chip s={si.status} map={INV_SC}/></div>
                   <div style={{fontSize:11,color:"#4a566e",marginTop:2}}>{custs.find(c=>c.id===si.custId)?.name||"Unassigned"} · Issued {si.issueDate} · Due {si.dueDate}{si.paidDate?` · Paid ${si.paidDate}`:""}</div>
                 </div>
                 <div className="act-bar" style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -4147,7 +4167,7 @@ function Invoices({invs,setInvs,custs,projs,ests,mats,roles,company,showToast,db
                   <button onClick={()=>del(si.id)} className="bb b-rd" style={{padding:"5px 8px",fontSize:11}}><I n="trash" s={11}/></button>
                 </div>
               </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <div className="inv-kpi-row" style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[{l:"Labor",v:fmt(siC.lab),c:"#f5a623"},{l:"Materials",v:fmt(siC.mat),c:"#6c8ebf"},{l:"Subtotal",v:fmt(siC.sub),c:"#dde1ec"},...(siC.discountPct>0?[{l:`Disc ${siC.discountPct}%`,v:`−${fmt(siC.discAmt)}`,c:"#a78bfa"}]:[]),{l:`Tax ${si.taxRate}%`,v:fmt(siC.tax),c:"#14b8a6"},{l:"TOTAL",v:fmt(siC.total),c:"#22c55e",big:true},...(siC.depAmt>0?[{l:"Deposit",v:fmt(siC.depAmt),c:"#f59e0b"},{l:"Balance Due",v:fmt(siC.balanceDue),c:"#63b3ed",big:true}]:[])].map(k=>(
                   <div key={k.l} style={{background:"#0c0f17",border:`1px solid ${k.big?"rgba(34,197,94,.28)":"#111826"}`,borderRadius:8,padding:"6px 11px"}}>
                     <div style={{fontSize:8,color:"#3a4160",fontWeight:700,textTransform:"uppercase",letterSpacing:.4}}>{k.l}</div>
