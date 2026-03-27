@@ -113,13 +113,24 @@ async function main() {
   for (var r of roles) { await prisma.laborRole.upsert({ where: { id: roles.indexOf(r) + 1 }, update: {}, create: { companyId: company.id, ...r } }); }
   console.log('  + 10 labor roles');
 
+  // ── Project Phases ──────────────────────────────────
+  var phaseNames = ['Planning','Design','Permitting','Demolition','Site Prep','Rough-In','Installations','Finishes','Closeout & Punch List'];
+  for (var i = 0; i < phaseNames.length; i++) {
+    await prisma.projectPhase.upsert({
+      where: { companyId_name: { companyId: company.id, name: phaseNames[i] } },
+      update: { sortOrder: i },
+      create: { companyId: company.id, name: phaseNames[i], sortOrder: i },
+    });
+  }
+  console.log('  + 9 project phases');
+
   // ── Projects (5) ───────────────────────────────────
   var projects = [
-    { id:'PRJ-2026-001',name:'Thornton Kitchen Full Remodel',companyId:company.id,custId:1,estId:'EST-2026-001',status:'active',contractValue:38000,budgetLabor:18000,budgetMaterials:14200,actualLabor:12400,actualMaterials:9800,start:'2026-02-01',end:'2026-03-28',phase:'Finish Work',progress:72,notes:'On track. Countertops install next week.' },
-    { id:'PRJ-2026-002',name:'Rivera Bathroom Remodel',companyId:company.id,custId:2,estId:'EST-2026-002',status:'active',contractValue:19500,budgetLabor:9300,budgetMaterials:8100,actualLabor:7200,actualMaterials:6900,start:'2026-02-15',end:'2026-03-20',phase:'Tile & Fixtures',progress:85,notes:'Final punch list pending.' },
-    { id:'PRJ-2026-003',name:'Goldberg Composite Deck',companyId:company.id,custId:3,estId:'EST-2026-003',status:'active',contractValue:14200,budgetLabor:5700,budgetMaterials:6200,actualLabor:3200,actualMaterials:4100,start:'2026-03-01',end:'2026-03-22',phase:'Framing',progress:40,notes:'Material delivery on 3/14.' },
-    { id:'PRJ-2026-004',name:'Park Detached ADU',companyId:company.id,custId:4,estId:'EST-2026-004',status:'active',contractValue:88000,budgetLabor:42000,budgetMaterials:32000,actualLabor:9600,actualMaterials:12000,start:'2026-03-10',end:'2026-07-01',phase:'Foundation',progress:12,notes:'Foundation pour complete. Framing starts 3/16.' },
-    { id:'PRJ-2026-005',name:'Chen Master Suite Addition',companyId:company.id,custId:5,estId:null,status:'complete',contractValue:31000,budgetLabor:16500,budgetMaterials:9500,actualLabor:16200,actualMaterials:9100,start:'2026-01-05',end:'2026-02-28',phase:'Complete',progress:100,notes:'Signed off 2/28.' },
+    { id:'PRJ-2026-001',name:'Thornton Kitchen Full Remodel',companyId:company.id,custId:1,estId:'EST-2026-001',status:'active',contractValue:38000,budgetLabor:18000,budgetMaterials:14200,actualLabor:12400,actualMaterials:9800,start:'2026-02-01',end:'2026-03-28',phase:'Finishes',progress:72,notes:'On track. Countertops install next week.' },
+    { id:'PRJ-2026-002',name:'Rivera Bathroom Remodel',companyId:company.id,custId:2,estId:'EST-2026-002',status:'active',contractValue:19500,budgetLabor:9300,budgetMaterials:8100,actualLabor:7200,actualMaterials:6900,start:'2026-02-15',end:'2026-03-20',phase:'Installations',progress:85,notes:'Final punch list pending.' },
+    { id:'PRJ-2026-003',name:'Goldberg Composite Deck',companyId:company.id,custId:3,estId:'EST-2026-003',status:'active',contractValue:14200,budgetLabor:5700,budgetMaterials:6200,actualLabor:3200,actualMaterials:4100,start:'2026-03-01',end:'2026-03-22',phase:'Rough-In',progress:40,notes:'Material delivery on 3/14.' },
+    { id:'PRJ-2026-004',name:'Park Detached ADU',companyId:company.id,custId:4,estId:'EST-2026-004',status:'active',contractValue:88000,budgetLabor:42000,budgetMaterials:32000,actualLabor:9600,actualMaterials:12000,start:'2026-03-10',end:'2026-07-01',phase:'Site Prep',progress:12,notes:'Foundation pour complete. Framing starts 3/16.' },
+    { id:'PRJ-2026-005',name:'Chen Master Suite Addition',companyId:company.id,custId:5,estId:null,status:'complete',contractValue:31000,budgetLabor:16500,budgetMaterials:9500,actualLabor:16200,actualMaterials:9100,start:'2026-01-05',end:'2026-02-28',phase:'Closeout & Punch List',progress:100,notes:'Signed off 2/28.' },
   ];
   for (var p of projects) { await prisma.project.upsert({ where: { id: p.id }, update: {}, create: p }); }
   console.log('  + 5 projects');

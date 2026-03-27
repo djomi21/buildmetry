@@ -75,11 +75,11 @@ const SD_ESTS=[
 ];
 
 const SD_PROJS=[
-  {id:"PRJ-2026-001",name:"Thornton Kitchen Full Remodel",custId:1,estId:"EST-2026-001",status:"active",contractValue:38000,budgetLabor:18000,budgetMaterials:14200,actualLabor:12400,actualMaterials:9800,start:"2026-02-01",end:"2026-03-28",phase:"Finish Work",progress:72,notes:"On track. Countertops install next week."},
-  {id:"PRJ-2026-002",name:"Rivera Bathroom Remodel",custId:2,estId:"EST-2026-002",status:"active",contractValue:19500,budgetLabor:9300,budgetMaterials:8100,actualLabor:7200,actualMaterials:6900,start:"2026-02-15",end:"2026-03-20",phase:"Tile & Fixtures",progress:85,notes:"Final punch list pending."},
-  {id:"PRJ-2026-003",name:"Goldberg Composite Deck",custId:3,estId:"EST-2026-003",status:"active",contractValue:14200,budgetLabor:5700,budgetMaterials:6200,actualLabor:3200,actualMaterials:4100,start:"2026-03-01",end:"2026-03-22",phase:"Framing",progress:40,notes:"Material delivery on 3/14."},
-  {id:"PRJ-2026-004",name:"Park Detached ADU",custId:4,estId:"EST-2026-004",status:"active",contractValue:88000,budgetLabor:42000,budgetMaterials:32000,actualLabor:9600,actualMaterials:12000,start:"2026-03-10",end:"2026-07-01",phase:"Foundation",progress:12,notes:"Foundation pour complete. Framing starts 3/16."},
-  {id:"PRJ-2026-005",name:"Chen Master Suite Addition",custId:5,estId:null,status:"complete",contractValue:31000,budgetLabor:16500,budgetMaterials:9500,actualLabor:16200,actualMaterials:9100,start:"2026-01-05",end:"2026-02-28",phase:"Complete",progress:100,notes:"Signed off 2/28."},
+  {id:"PRJ-2026-001",name:"Thornton Kitchen Full Remodel",custId:1,estId:"EST-2026-001",status:"active",contractValue:38000,budgetLabor:18000,budgetMaterials:14200,actualLabor:12400,actualMaterials:9800,start:"2026-02-01",end:"2026-03-28",phase:"Finishes",progress:72,notes:"On track. Countertops install next week."},
+  {id:"PRJ-2026-002",name:"Rivera Bathroom Remodel",custId:2,estId:"EST-2026-002",status:"active",contractValue:19500,budgetLabor:9300,budgetMaterials:8100,actualLabor:7200,actualMaterials:6900,start:"2026-02-15",end:"2026-03-20",phase:"Installations",progress:85,notes:"Final punch list pending."},
+  {id:"PRJ-2026-003",name:"Goldberg Composite Deck",custId:3,estId:"EST-2026-003",status:"active",contractValue:14200,budgetLabor:5700,budgetMaterials:6200,actualLabor:3200,actualMaterials:4100,start:"2026-03-01",end:"2026-03-22",phase:"Rough-In",progress:40,notes:"Material delivery on 3/14."},
+  {id:"PRJ-2026-004",name:"Park Detached ADU",custId:4,estId:"EST-2026-004",status:"active",contractValue:88000,budgetLabor:42000,budgetMaterials:32000,actualLabor:9600,actualMaterials:12000,start:"2026-03-10",end:"2026-07-01",phase:"Site Prep",progress:12,notes:"Foundation pour complete. Framing starts 3/16."},
+  {id:"PRJ-2026-005",name:"Chen Master Suite Addition",custId:5,estId:null,status:"complete",contractValue:31000,budgetLabor:16500,budgetMaterials:9500,actualLabor:16200,actualMaterials:9100,start:"2026-01-05",end:"2026-02-28",phase:"Closeout & Punch List",progress:100,notes:"Signed off 2/28."},
 ];
 
 const SD_MATS=[
@@ -176,14 +176,14 @@ const EXPENSE_CATS=["Materials","Labor","Permits","Equipment Rental","Insurance"
 const SD_PHASES=["Planning","Design","Permitting","Demolition","Site Prep","Rough-In","Installations","Finishes","Closeout & Punch List"];
 
 const SD_TASKS=[
-  {id:"T-001",projId:"PRJ-2026-001",phase:"Finish Work",title:"Install countertops",assignedTo:1,status:"in_progress",dueDate:"2026-03-18",notes:"Granite template done"},
-  {id:"T-002",projId:"PRJ-2026-001",phase:"Finish Work",title:"Install backsplash tile",assignedTo:4,status:"todo",dueDate:"2026-03-20",notes:""},
-  {id:"T-003",projId:"PRJ-2026-001",phase:"Punch List",title:"Touch-up paint",assignedTo:6,status:"todo",dueDate:"2026-03-25",notes:""},
-  {id:"T-004",projId:"PRJ-2026-002",phase:"Tile & Fixtures",title:"Install shower fixtures",assignedTo:3,status:"in_progress",dueDate:"2026-03-16",notes:"Thermostatic valve"},
-  {id:"T-005",projId:"PRJ-2026-002",phase:"Punch List",title:"Final cleaning",assignedTo:null,status:"todo",dueDate:"2026-03-19",notes:""},
-  {id:"T-006",projId:"PRJ-2026-003",phase:"Framing",title:"Set deck posts",assignedTo:7,status:"done",dueDate:"2026-03-08",notes:"6x6 posts set in concrete"},
-  {id:"T-007",projId:"PRJ-2026-003",phase:"Framing",title:"Install joists & blocking",assignedTo:7,status:"in_progress",dueDate:"2026-03-14",notes:""},
-  {id:"T-008",projId:"PRJ-2026-004",phase:"Foundation",title:"Pour slab",assignedTo:10,status:"done",dueDate:"2026-03-15",notes:"640 SF slab poured"},
+  {id:"T-001",projId:"PRJ-2026-001",phase:"Finishes",title:"Install countertops",assignedTo:1,status:"in_progress",dueDate:"2026-03-18",notes:"Granite template done"},
+  {id:"T-002",projId:"PRJ-2026-001",phase:"Finishes",title:"Install backsplash tile",assignedTo:4,status:"todo",dueDate:"2026-03-20",notes:""},
+  {id:"T-003",projId:"PRJ-2026-001",phase:"Closeout & Punch List",title:"Touch-up paint",assignedTo:6,status:"todo",dueDate:"2026-03-25",notes:""},
+  {id:"T-004",projId:"PRJ-2026-002",phase:"Installations",title:"Install shower fixtures",assignedTo:3,status:"in_progress",dueDate:"2026-03-16",notes:"Thermostatic valve"},
+  {id:"T-005",projId:"PRJ-2026-002",phase:"Closeout & Punch List",title:"Final cleaning",assignedTo:null,status:"todo",dueDate:"2026-03-19",notes:""},
+  {id:"T-006",projId:"PRJ-2026-003",phase:"Rough-In",title:"Set deck posts",assignedTo:7,status:"done",dueDate:"2026-03-08",notes:"6x6 posts set in concrete"},
+  {id:"T-007",projId:"PRJ-2026-003",phase:"Rough-In",title:"Install joists & blocking",assignedTo:7,status:"in_progress",dueDate:"2026-03-14",notes:""},
+  {id:"T-008",projId:"PRJ-2026-004",phase:"Site Prep",title:"Pour slab",assignedTo:10,status:"done",dueDate:"2026-03-15",notes:"640 SF slab poured"},
 ];
 
 const SD_COMPANY={
@@ -1928,7 +1928,7 @@ function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs
 
   const markComplete=(proj)=>{
     if(!confirm("Mark \""+proj.name+"\" as complete?\n\nThis will create a final invoice with estimate line items + approved change orders.")) return;
-    db.projs.update(proj.id,{status:"complete",phase:"Complete",progress:100});
+    db.projs.update(proj.id,{status:"complete",phase:"Closeout & Punch List",progress:100});
     var lineItems=[];var lineId=1;
     var est=(ests||[]).find(function(e){return e.id===proj.estId;});
     if(est&&est.lineItems){
