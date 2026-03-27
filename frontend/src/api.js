@@ -115,6 +115,23 @@ export const api = {
     test: ()      => request('POST', '/email/test'),
     log:  ()      => request('GET',  '/email/log'),
   },
+
+  // ── Tasks ──────────────────────────────────────────
+  tasks: {
+    list:   ()       => request('GET',    '/tasks'),
+    create: (data)   => request('POST',   '/tasks', data),
+    update: (id, d)  => request('PUT',    `/tasks/${id}`, d),
+    remove: (id)     => request('DELETE', `/tasks/${id}`),
+  },
+
+  // ── Phases ─────────────────────────────────────────
+  phases: {
+    list:    ()       => request('GET',    '/phases'),
+    create:  (data)   => request('POST',   '/phases', data),
+    update:  (id, d)  => request('PUT',    `/phases/${id}`, d),
+    remove:  (id)     => request('DELETE', `/phases/${id}`),
+    reorder: (phases) => request('PUT',    '/phases/reorder/bulk', { phases }),
+  },
 };
 
 export default api;

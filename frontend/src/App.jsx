@@ -863,7 +863,7 @@ export default function App() {
         const user = await api.getMe();
         setAuth(user);
 
-        const [c,e,p,m,s,r,h,i,co,ex,comp,u] = await Promise.all([
+        const [c,e,p,m,s,r,h,i,co,ex,tk,ph,comp,u] = await Promise.all([
           api.customers.list().catch(()=>[]),
           api.estimates.list().catch(()=>[]),
           api.projects.list().catch(()=>[]),
@@ -874,13 +874,16 @@ export default function App() {
           api.invoices.list().catch(()=>[]),
           api.changeOrders.list().catch(()=>[]),
           api.expenses.list().catch(()=>[]),
+          api.tasks.list().catch(()=>[]),
+          api.phases.list().catch(()=>[]),
           api.company.get().catch(()=>({})),
           api.users.list().catch(()=>[]),
         ]);
 
         setCusts(c); setEsts(e); setProjs(p); setMats(m);
         setSubs(s); setRoles(r); setHrs(h); setInvs(i);
-        setCos(co); setExpenses(ex); setUsers(u);
+        setCos(co); setExpenses(ex); setTasks(tk); setUsers(u);
+        if (ph && ph.length > 0) setPhases(ph.map(function(x){return x.name;}));
         console.log('COMPANY LOADED:', comp && comp.id, comp && comp.name, comp && comp.themeAccent);
         if (comp?.id) setCompany(comp);
       } catch (err) {
@@ -990,6 +993,7 @@ export default function App() {
     invs:     makeDb(setInvs, api.invoices),
     cos:      makeDb(setCos, api.changeOrders),
     expenses: makeDb(setExpenses, api.expenses),
+    tasks:    makeDb(setTasks, api.tasks),
     users:    makeDb(setUsers, api.users),
   };
 
@@ -2046,21 +2050,20 @@ function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs
               const saveTask=()=>{
                 if(!taskForm.title.trim()){showToast("Task title required","error");return;}
                 if(taskForm.id){
-                  setTasks(prev=>prev.map(t=>t.id===taskForm.id?{...t,...taskForm}:t));
+                  db.tasks.update(taskForm.id,{phase:taskForm.phase,title:taskForm.title,assignedTo:taskForm.assignedTo,status:taskForm.status,dueDate:taskForm.dueDate,notes:taskForm.notes});
                   showToast("Task updated");
                 } else {
-                  var newT={...taskForm,id:"T-"+uid(),projId:sp.id};
-                  setTasks(prev=>[...prev,newT]);
+                  db.tasks.create({...taskForm,id:"T-"+uid(),projId:sp.id});
                   showToast("Task added");
                 }
                 setTaskForm(null);
               };
-              const toggleTask=(tid)=>setTasks(prev=>prev.map(function(t){
-                if(t.id!==tid)return t;
+              const toggleTask=(tid)=>{
+                var t=tasks.find(function(x){return x.id===tid;});if(!t)return;
                 var next=t.status==="todo"?"in_progress":t.status==="in_progress"?"done":"todo";
-                return{...t,status:next};
-              }));
-              const delTask=(tid)=>{setTasks(prev=>prev.filter(t=>t.id!==tid));showToast("Task removed");};
+                db.tasks.update(tid,{status:next});
+              };
+              const delTask=(tid)=>{db.tasks.remove(tid);showToast("Task removed");};
 
               const donePct=projTasks.length>0?Math.round(projTasks.filter(t=>t.status==="done").length/projTasks.length*100):0;
 
@@ -3650,6 +3653,7 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
           if(!v){showToast("Enter a phase name","error");return;}
           if(phases.includes(v)){showToast("Phase already exists","error");return;}
           setPhases(prev=>[...prev,v]);
+          api.phases.create({name:v,sortOrder:phases.length}).catch(function(e){console.error("Phase create fail:",e);});
           setNewPhase("");
           showToast("Phase added");
         };
@@ -3657,6 +3661,11 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
           if(phases.length<=2){showToast("Must keep at least 2 phases","error");return;}
           if(!confirm("Delete phase \""+ph+"\"? Existing projects using this phase won't be affected.")) return;
           setPhases(prev=>prev.filter(p=>p!==ph));
+          // Find the phase record to delete by name
+          api.phases.list().then(function(all){
+            var rec=all.find(function(x){return x.name===ph;});
+            if(rec) api.phases.remove(rec.id).catch(function(e){console.error("Phase delete fail:",e);});
+          }).catch(function(){});
           showToast("Phase removed");
         };
         const movePhase=(idx,dir)=>{
@@ -3665,6 +3674,14 @@ function CompanySetup({company,setCompany,users,setUsers,showToast,db,roles,setR
           var arr=[...phases];
           var tmp=arr[idx];arr[idx]=arr[ni];arr[ni]=tmp;
           setPhases(arr);
+          // Save new order to API
+          api.phases.list().then(function(all){
+            var updates=arr.map(function(name,i){
+              var rec=all.find(function(x){return x.name===name;});
+              return rec?{id:rec.id,sortOrder:i}:null;
+            }).filter(Boolean);
+            if(updates.length>0) api.phases.reorder(updates).catch(function(e){console.error("Reorder fail:",e);});
+          }).catch(function(){});
         };
 
         return <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:780}}>

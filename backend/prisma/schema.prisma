@@ -72,6 +72,8 @@ model Company {
   laborRoles          LaborRole[]
   changeOrders        ChangeOrder[]
   expenses            Expense[]
+  tasks               Task[]
+  projectPhases       ProjectPhase[]
 }
 
 // ── USERS ────────────────────────────────────────────
@@ -350,4 +352,36 @@ model EmailLog {
   status      String    @default("sent")  // sent, failed, bounced
   sentAt      DateTime  @default(now())
   sentBy      Int?
+}
+
+// ── PROJECT TASKS ───────────────────────────────────
+model Task {
+  id          String    @id
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projId      String
+  phase       String?
+  title       String
+  assignedTo  Int?
+  status      String    @default("todo")
+  dueDate     String?
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([projId])
+}
+
+// ── PROJECT PHASES ──────────────────────────────────
+model ProjectPhase {
+  id          Int       @id @default(autoincrement())
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@unique([companyId, name])
+  @@index([companyId])
 }

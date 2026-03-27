@@ -61,6 +61,8 @@ app.use('/api/labor-roles',    loadRoute('./routes/laborRoles', 'laborRoles'));
 app.use('/api/time-entries',   loadRoute('./routes/timeEntries', 'timeEntries'));
 app.use('/api/change-orders',  loadRoute('./routes/changeOrders', 'changeOrders'));
 app.use('/api/expenses',       loadRoute('./routes/expenses', 'expenses'));
+app.use('/api/tasks',          loadRoute('./routes/tasks', 'tasks'));
+app.use('/api/phases',         loadRoute('./routes/phases', 'phases'));
 app.use('/api/email',          loadRoute('./routes/email', 'email'));
 app.use('/api/users',          loadRoute('./routes/users', 'users'));
 
