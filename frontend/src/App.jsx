@@ -1908,7 +1908,7 @@ function Estimates({ests,setEsts,custs,projs,setProjs,invs,setInvs,mats,roles,co
 // ══════════════════════════════════════════════════════════════
 // PROJECTS
 // ══════════════════════════════════════════════════════════════
-function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs,showToast,setTab,db}) {
+function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs,showToast,setTab,db,auth}) {
   const [sel,  setSel]  = useState(projs[0]?.id||null);
   const [form, setForm] = useState(null);
   const sp=projs.find(p=>p.id===sel)||null;
@@ -1924,6 +1924,15 @@ function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs
     if(form._id){var ch={...data};delete ch._id;db.projs.update(form._id,ch);showToast("Updated");}
     else{const id=nxtNum(projs,"PRJ");const np={...data,id};db.projs.create(np);setSel(id);showToast(id+" created");}
     setForm(null);
+  };
+
+  const canDelete=auth&&["Owner","Admin","Project Manager"].includes(auth.role);
+  const del=(id)=>{
+    if(!canDelete)return;
+    if(!confirm("Delete this project? This cannot be undone."))return;
+    db.projs.remove(id);
+    if(sel===id)setSel(null);
+    showToast("Project deleted");
   };
 
   const markComplete=(proj)=>{
@@ -2003,6 +2012,7 @@ function Projects({projs,setProjs,custs,ests,cos,invs,tasks,setTasks,phases,subs
                 {sp.status==="active"&&<button onClick={()=>markComplete(sp)} className="bb b-gr" style={{padding:"6px 11px",fontSize:11}}><I n="check" s={11}/>Mark Complete</button>}
                 <button onClick={()=>openEdit(sp)} className="bb b-gh" style={{padding:"6px 11px",fontSize:11}}><I n="edit" s={11}/>Edit</button>
                 <button onClick={()=>setTab("costing")} className="bb b-am" style={{padding:"6px 11px",fontSize:11}}><I n="costing" s={11}/>Costs</button>
+                {canDelete&&<button onClick={()=>del(sp.id)} className="bb b-rd" style={{padding:"6px 10px",fontSize:11}}><I n="trash" s={11}/></button>}
               </div>
             </div>
             <div style={{marginBottom:11}}>
